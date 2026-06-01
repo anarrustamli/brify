@@ -22,26 +22,40 @@ def new_id() -> str:
 
 
 CATEGORIES = [
-    ("Digital Marketing", "digital-marketing", "TrendingUp", 1),
-    ("SEO", "seo", "Search", 2),
-    ("Social Media Marketing", "social-media", "Share2", 3),
-    ("Web Development", "web-development", "Code", 4),
-    ("Mobile App Development", "mobile-development", "Smartphone", 5),
-    ("Software Development", "software-development", "Cpu", 6),
-    ("Branding", "branding", "Palette", 7),
-    ("Design", "design", "PenTool", 8),
-    ("Video Production", "video-production", "Video", 9),
-    ("PR", "pr", "Megaphone", 10),
-    ("Consulting", "consulting", "Briefcase", 11),
-    ("HR Services", "hr-services", "Users", 12),
-    ("Accounting", "accounting", "Calculator", 13),
-    ("Legal Services", "legal-services", "Scale", 14),
-    ("Logistics", "logistics", "Truck", 15),
-    ("Event Management", "event-management", "Calendar", 16),
-    ("IT Support", "it-support", "Monitor", 17),
-    ("Cybersecurity", "cybersecurity", "Shield", 18),
-    ("Cloud Services", "cloud-services", "Cloud", 19),
-    ("AI & Automation", "ai-automation", "Bot", 20),
+    # Parent categories (no parent_slug)
+    ("Marketing", "marketing", "TrendingUp", "#ef4444", None, 1),
+    ("Technology", "technology", "Cpu", "#3b82f6", None, 2),
+    ("Business Services", "business-services", "Briefcase", "#10b981", None, 3),
+    ("Design", "design-root", "Palette", "#f59e0b", None, 4),
+    # Marketing subcategories
+    ("Digital Marketing", "digital-marketing", "TrendingUp", "#ef4444", "marketing", 10),
+    ("SEO", "seo", "Search", "#ef4444", "marketing", 11),
+    ("Social Media Marketing", "social-media", "Share2", "#ef4444", "marketing", 12),
+    ("Google Ads", "google-ads", "Target", "#ef4444", "marketing", 13),
+    ("Meta Ads", "meta-ads", "Megaphone", "#ef4444", "marketing", 14),
+    ("Email Marketing", "email-marketing", "Mail", "#ef4444", "marketing", 15),
+    ("PR", "pr", "Megaphone", "#ef4444", "marketing", 16),
+    # Technology subcategories
+    ("Web Development", "web-development", "Code", "#3b82f6", "technology", 20),
+    ("Mobile App Development", "mobile-development", "Smartphone", "#3b82f6", "technology", 21),
+    ("Software Development", "software-development", "Cpu", "#3b82f6", "technology", 22),
+    ("AI & Automation", "ai-automation", "Bot", "#3b82f6", "technology", 23),
+    ("Cloud Services", "cloud-services", "Cloud", "#3b82f6", "technology", 24),
+    ("Cybersecurity", "cybersecurity", "Shield", "#3b82f6", "technology", 25),
+    ("IT Support", "it-support", "Monitor", "#3b82f6", "technology", 26),
+    # Business Services subcategories
+    ("Consulting", "consulting", "Briefcase", "#10b981", "business-services", 30),
+    ("HR Services", "hr-services", "Users", "#10b981", "business-services", 31),
+    ("Accounting", "accounting", "Calculator", "#10b981", "business-services", 32),
+    ("Legal Services", "legal-services", "Scale", "#10b981", "business-services", 33),
+    ("Logistics", "logistics", "Truck", "#10b981", "business-services", 34),
+    ("Event Management", "event-management", "Calendar", "#10b981", "business-services", 35),
+    # Design subcategories
+    ("Branding", "branding", "Palette", "#f59e0b", "design-root", 40),
+    ("UI/UX Design", "design", "PenTool", "#f59e0b", "design-root", 41),
+    ("Video Production", "video-production", "Video", "#f59e0b", "design-root", 42),
+    ("Motion Design", "motion-design", "Sparkles", "#f59e0b", "design-root", 43),
+    ("3D Design", "3d-design", "Box", "#f59e0b", "design-root", 44),
 ]
 
 INDUSTRIES = ["Fintech", "E-commerce", "Healthcare", "Education", "Real Estate", "Retail", "Telecom", "Logistics", "Energy", "Manufacturing"]
@@ -91,10 +105,10 @@ BLOG_POSTS = [
 ]
 
 PLANS = [
-    {"id": new_id(), "name": "Free", "slug": "free", "price": 0, "period": "ay", "order": 1, "popular": False, "limits": {"services": 3, "portfolio": 3, "team": 1, "leads": 5, "featured": False, "verified": False, "analytics": "basic", "support": "email"}, "features": ["3 xidmət", "3 portfolio", "Aylıq 5 lead", "Əsas analitika"]},
-    {"id": new_id(), "name": "Pro", "slug": "pro", "price": 99, "period": "ay", "order": 2, "popular": True, "limits": {"services": 15, "portfolio": 20, "team": 5, "leads": 50, "featured": False, "verified": True, "analytics": "advanced", "support": "priority email"}, "features": ["15 xidmət", "20 portfolio", "Aylıq 50 lead", "Verified badge", "Geniş analitika", "5 komanda üzvü"]},
-    {"id": new_id(), "name": "Premium", "slug": "premium", "price": 249, "period": "ay", "order": 3, "popular": False, "limits": {"services": 50, "portfolio": 100, "team": 20, "leads": 200, "featured": True, "verified": True, "analytics": "advanced+", "support": "phone + email"}, "features": ["50 xidmət", "100 portfolio", "Aylıq 200 lead", "Featured placement", "Premium analitika", "20 komanda üzvü", "Telefon dəstəyi"]},
-    {"id": new_id(), "name": "Enterprise", "slug": "enterprise", "price": 599, "period": "ay", "order": 4, "popular": False, "limits": {"services": -1, "portfolio": -1, "team": -1, "leads": -1, "featured": True, "verified": True, "analytics": "custom", "support": "dedicated"}, "features": ["Limitsiz xidmət", "Limitsiz portfolio", "Limitsiz lead", "Featured + Carousel", "Custom analitika", "Dedicated manager", "API access"]},
+    {"id": new_id(), "name": "Free", "slug": "free", "price": 0, "yearly_price": 0, "period": "ay", "order": 1, "popular": False, "active": True, "limits": {"services": 3, "portfolio": 5, "case_studies": 0, "team": 2, "certifications": 2, "awards": 0, "branches": 1, "leads_monthly": 5, "storage_gb": 1}, "features": {"public_profile": True, "portfolio_section": True, "team_section": False, "reviews_section": True, "case_studies_section": False, "certifications_section": True, "awards_section": False, "contact_form": True, "direct_messaging": False, "featured_badge": False, "verified_eligible": False, "homepage_visibility": False, "basic_analytics": True, "advanced_analytics": False, "ai_features": False, "custom_domain": False}, "feature_list": ["3 xidmət", "5 portfolio", "Aylıq 5 lead", "Əsas analitika"]},
+    {"id": new_id(), "name": "Pro", "slug": "pro", "price": 99, "yearly_price": 990, "period": "ay", "order": 2, "popular": True, "active": True, "limits": {"services": 15, "portfolio": 20, "case_studies": 10, "team": 5, "certifications": 10, "awards": 5, "branches": 3, "leads_monthly": 50, "storage_gb": 10}, "features": {"public_profile": True, "portfolio_section": True, "team_section": True, "reviews_section": True, "case_studies_section": True, "certifications_section": True, "awards_section": True, "contact_form": True, "direct_messaging": True, "featured_badge": False, "verified_eligible": True, "homepage_visibility": False, "basic_analytics": True, "advanced_analytics": True, "ai_features": False, "custom_domain": False}, "feature_list": ["15 xidmət", "20 portfolio", "Aylıq 50 lead", "Verified badge", "Geniş analitika", "5 komanda üzvü"]},
+    {"id": new_id(), "name": "Premium", "slug": "premium", "price": 249, "yearly_price": 2490, "period": "ay", "order": 3, "popular": False, "active": True, "limits": {"services": 50, "portfolio": 100, "case_studies": 50, "team": 20, "certifications": 30, "awards": 20, "branches": 10, "leads_monthly": 200, "storage_gb": 50}, "features": {"public_profile": True, "portfolio_section": True, "team_section": True, "reviews_section": True, "case_studies_section": True, "certifications_section": True, "awards_section": True, "contact_form": True, "direct_messaging": True, "featured_badge": True, "verified_eligible": True, "homepage_visibility": True, "basic_analytics": True, "advanced_analytics": True, "ai_features": True, "custom_domain": False}, "feature_list": ["50 xidmət", "100 portfolio", "Aylıq 200 lead", "Featured placement", "AI features", "Telefon dəstəyi"]},
+    {"id": new_id(), "name": "Enterprise", "slug": "enterprise", "price": 599, "yearly_price": 5990, "period": "ay", "order": 4, "popular": False, "active": True, "limits": {"services": -1, "portfolio": -1, "case_studies": -1, "team": -1, "certifications": -1, "awards": -1, "branches": -1, "leads_monthly": -1, "storage_gb": 100}, "features": {"public_profile": True, "portfolio_section": True, "team_section": True, "reviews_section": True, "case_studies_section": True, "certifications_section": True, "awards_section": True, "contact_form": True, "direct_messaging": True, "featured_badge": True, "verified_eligible": True, "homepage_visibility": True, "basic_analytics": True, "advanced_analytics": True, "ai_features": True, "custom_domain": True}, "feature_list": ["Limitsiz xidmət", "Limitsiz lead", "Dedicated manager", "Custom domain", "AI suite", "API access"]},
 ]
 
 ADS = [
@@ -122,7 +136,9 @@ async def run_seed(db):
         admin_email = os.environ.get("ADMIN_EMAIL", "admin@bizmarket.az")
         admin = await db.users.find_one({"email": admin_email})
         if admin:
-            # Ensure search-inline and sidebar ads exist (idempotent)
+            # Ensure categories and plans are seeded (idempotent)
+            await _seed_categories_if_missing(db)
+            await _seed_plans_if_missing(db)
             await _ensure_search_ads(db)
             await _write_test_credentials()
             return
@@ -131,12 +147,14 @@ async def run_seed(db):
 
     # ----- Categories -----
     if await db.categories.count_documents({}) == 0:
-        for name, slug, icon, order in CATEGORIES:
+        for name, slug, icon, color, parent_slug, order in CATEGORIES:
             await db.categories.insert_one({
                 "id": new_id(),
                 "name": name,
                 "slug": slug,
                 "icon": icon,
+                "color": color,
+                "parent_slug": parent_slug,
                 "order": order,
                 "active": True,
                 "description": f"{name} sahəsində aparıcı şirkətlər və xidmətlər.",
@@ -493,6 +511,26 @@ async def run_seed(db):
     print("Seed completed.")
     await _ensure_search_ads(db)
     await _write_test_credentials()
+
+
+async def _seed_categories_if_missing(db):
+    if await db.categories.count_documents({}) > 0:
+        return
+    for name, slug, icon, color, parent_slug, order in CATEGORIES:
+        await db.categories.insert_one({
+            "id": new_id(), "name": name, "slug": slug, "icon": icon, "color": color,
+            "parent_slug": parent_slug, "order": order, "active": True,
+            "description": f"{name} sahəsində aparıcı şirkətlər.",
+            "seo_title": f"{name} şirkətləri | BizMarket",
+            "seo_description": f"Ən yaxşı {name.lower()} şirkətlərini tapın.",
+            "created_at": now_iso(),
+        })
+
+
+async def _seed_plans_if_missing(db):
+    if await db.plans.count_documents({}) > 0:
+        return
+    await db.plans.insert_many([dict(p) for p in PLANS])
 
 
 async def _ensure_search_ads(db):

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import CategorySelector from "@/components/marketplace/CategorySelector";
 import { toast } from "sonner";
 
 const TABS = [
@@ -89,7 +90,14 @@ export default function CompanyProfileEdit() {
             <div><Label>Qısa təsvir</Label><Textarea rows={2} value={form.short_description || ""} onChange={(e) => update("short_description", e.target.value)} placeholder="Bir-iki cümlə..." className="mt-1" /></div>
             <div><Label>Tam təsvir</Label><Textarea rows={6} value={form.about || ""} onChange={(e) => update("about", e.target.value)} className="mt-1" /></div>
             <div><Label>Sahələr (vergüllə)</Label><Input value={(form.industries || []).join(", ")} onChange={(e) => update("industries", e.target.value.split(",").map(s => s.trim()).filter(Boolean))} className="h-11 mt-1" /></div>
-            <div><Label>Kateqoriyalar (slug, vergüllə)</Label><Input value={(form.categories || []).join(", ")} onChange={(e) => update("categories", e.target.value.split(",").map(s => s.trim()).filter(Boolean))} placeholder="seo, web-development" className="h-11 mt-1" /></div>
+            <div>
+              <Label>Kateqoriyalar</Label>
+              <p className="text-xs text-slate-500 mt-1 mb-2">Maksimum 3 əsas kateqoriya, hər birində 3 alt-kateqoriya seçə bilərsiniz.</p>
+              <CategorySelector
+                value={{ parents: form.categories || [], subcategories: form.subcategories || {} }}
+                onChange={(v) => { update("categories", v.parents); update("subcategories", v.subcategories); }}
+              />
+            </div>
           </>
         )}
         {section === "contact" && (
@@ -117,10 +125,19 @@ export default function CompanyProfileEdit() {
         )}
         {section === "locations" && (
           <>
-            <h3 className="font-semibold text-slate-900 mb-2">Lokasiyalar</h3>
+            <h3 className="font-semibold text-slate-900 mb-2">Ünvan və Lokasiyalar</h3>
             <div><Label>Mərkəzi ofis (şəhər)</Label><Input value={form.location || ""} onChange={(e) => update("location", e.target.value)} className="h-11 mt-1" /></div>
+            <div><Label>Tam ünvan</Label><Input value={form.full_address || form.address || ""} onChange={(e) => { update("full_address", e.target.value); update("address", e.target.value); }} placeholder="Baku White City, Azerbaijan" className="h-11 mt-1" data-testid="loc-address" /></div>
+            <div><Label>Google Maps URL</Label><Input value={form.maps_url || ""} onChange={(e) => update("maps_url", e.target.value)} placeholder="https://maps.google.com/..." className="h-11 mt-1" data-testid="loc-maps-url" />
+              <p className="text-xs text-slate-500 mt-1">Sistem URL-dən koordinatları avtomatik çıxaracaq</p>
+            </div>
+            {(form.latitude || form.longitude) && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-900">
+                <strong>Koordinatlar:</strong> {form.latitude}, {form.longitude}
+              </div>
+            )}
             <div><Label>Filiallar (hər sətirdə bir şəhər)</Label><Textarea rows={3} value={(form.branches || []).join("\n")} onChange={(e) => update("branches", e.target.value.split("\n").map(s => s.trim()).filter(Boolean))} className="mt-1" /></div>
-            <div><Label>Xidmət göstərilən ölkələr (vergüllə)</Label><Input value={(form.service_countries || []).join(", ")} onChange={(e) => update("service_countries", e.target.value.split(",").map(s => s.trim()).filter(Boolean))} placeholder="Azərbaycan, Türkiyə, Gürcüstan" className="h-11 mt-1" /></div>
+            <div><Label>Xidmət göstərilən ölkələr (vergüllə)</Label><Input value={(form.service_countries || []).join(", ")} onChange={(e) => update("service_countries", e.target.value.split(",").map(s => s.trim()).filter(Boolean))} placeholder="Azərbaycan, Türkiyə" className="h-11 mt-1" /></div>
           </>
         )}
         <Button type="submit" disabled={saving} className="bg-blue-600 hover:bg-blue-700 h-11 px-6 mt-4" data-testid="cp-save">{saving ? "Saxlanır..." : "Yadda saxla"}</Button>

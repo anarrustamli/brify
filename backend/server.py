@@ -221,7 +221,19 @@ async def me(user: dict = Depends(get_current_user)):
 # ------- Categories -------
 @api_router.get("/categories")
 async def list_categories():
-    return await db.categories.find({}, {"_id": 0}).sort("order", 1).to_list(200)
+    return await db.categories.find({}, {"_id": 0}).sort("order", 1).to_list(500)
+
+
+@api_router.get("/categories/tree")
+async def category_tree():
+    cats = await db.categories.find({}, {"_id": 0}).sort("order", 1).to_list(500)
+    parents = [c for c in cats if not c.get("parent_slug")]
+    children_by_parent = {}
+    for c in cats:
+        p = c.get("parent_slug")
+        if p:
+            children_by_parent.setdefault(p, []).append(c)
+    return [{**p, "children": children_by_parent.get(p["slug"], [])} for p in parents]
 
 
 @api_router.get("/categories/{slug}")
@@ -239,6 +251,8 @@ class CategoryIn(BaseModel):
     description: Optional[str] = ""
     order: Optional[int] = 100
     active: Optional[bool] = True
+    parent_slug: Optional[str] = None
+    color: Optional[str] = "#3b82f6"
     seo_title: Optional[str] = ""
     seo_description: Optional[str] = ""
 
@@ -337,6 +351,10 @@ class CompanyUpdate(BaseModel):
     tax_number: Optional[str] = None
     statistics: Optional[dict] = None
     sections: Optional[dict] = None
+    full_address: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    subcategories: Optional[dict] = None  # {parent_slug: [sub_slug, ...]}
 
 
 @api_router.get("/me/company")
@@ -350,6 +368,13 @@ async def get_my_company(user: dict = Depends(require_role("provider"))):
 @api_router.put("/me/company")
 async def update_my_company(payload: CompanyUpdate, user: dict = Depends(require_role("provider"))):
     data = {k: v for k, v in payload.dict().items() if v is not None}
+    # Try to extract lat/lng from maps_url if not explicitly provided
+    if data.get("maps_url") and ("latitude" not in data or "longitude" not in data):
+        import re
+        m = re.search(r'@(-?\d+\.\d+),(-?\d+\.\d+)', data["maps_url"]) or re.search(r'!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)', data["maps_url"]) or re.search(r'q=(-?\d+\.\d+),(-?\d+\.\d+)', data["maps_url"])
+        if m:
+            data["latitude"] = float(m.group(1))
+            data["longitude"] = float(m.group(2))
     company = await db.companies.find_one({"owner_id": user["id"]})
     if not company:
         raise HTTPException(404, "Company not found")
@@ -431,6 +456,8 @@ async def create_service(payload: ServiceIn, user: dict = Depends(require_role("
     company = await db.companies.find_one({"owner_id": user["id"]})
     if not company:
         raise HTTPException(404, "Company not found")
+    current = await db.services.count_documents({"company_id": company["id"]})
+    await _check_plan_limit(company, "services", current)
     doc = {
         "id": new_id(), "company_id": company["id"], "company_name": company["name"],
         "company_logo": company.get("logo_url", ""), "company_rating": company.get("rating", 0),
@@ -487,6 +514,8 @@ async def my_portfolio(user: dict = Depends(require_role("provider"))):
 @api_router.post("/me/portfolio")
 async def create_portfolio(payload: PortfolioIn, user: dict = Depends(require_role("provider"))):
     company = await db.companies.find_one({"owner_id": user["id"]})
+    current = await db.portfolio.count_documents({"company_id": company["id"]})
+    await _check_plan_limit(company, "portfolio", current)
     doc = {"id": new_id(), "company_id": company["id"], "created_at": now_iso(), **payload.dict()}
     await db.portfolio.insert_one(doc)
     doc.pop("_id", None)
@@ -500,7 +529,51 @@ async def delete_portfolio(pid: str, user: dict = Depends(require_role("provider
     return {"ok": True}
 
 
-@api_router.get("/me/portfolio/{pid}")
+@api_router.get("/me/plan-status")
+async def my_plan_status(user: dict = Depends(require_role("provider"))):
+    company = await db.companies.find_one({"owner_id": user["id"]})
+    if not company:
+        raise HTTPException(404, "Company not found")
+    plan = await db.plans.find_one({"slug": company.get("plan", "free")}, {"_id": 0})
+    if not plan:
+        plan = {"slug": "free", "limits": {}, "features": []}
+    limits = plan.get("limits", {}) or {}
+    services = await db.services.count_documents({"company_id": company["id"]})
+    portfolio = await db.portfolio.count_documents({"company_id": company["id"]})
+    case_studies = await db.case_studies.count_documents({"company_id": company["id"]})
+    team = await db.team_members.count_documents({"company_id": company["id"]})
+    certs = await db.certificates.count_documents({"company_id": company["id"]})
+    awards = await db.awards.count_documents({"company_id": company["id"]})
+    return {
+        "plan": plan,
+        "usage": {
+            "services": services,
+            "portfolio": portfolio,
+            "case_studies": case_studies,
+            "team": team,
+            "certifications": certs,
+            "awards": awards,
+        },
+    }
+
+
+def _limit_or_unlimited(plan: dict, key: str) -> Optional[int]:
+    """Return None if unlimited, else the int limit."""
+    limits = (plan or {}).get("limits", {}) or {}
+    v = limits.get(key)
+    if v is None or v == -1:
+        return None
+    return int(v)
+
+
+async def _check_plan_limit(company: dict, key: str, current_count: int):
+    plan = await db.plans.find_one({"slug": company.get("plan", "free")})
+    limit = _limit_or_unlimited(plan, key)
+    if limit is not None and current_count >= limit:
+        raise HTTPException(402, f"Plan limit reached: {key} ({limit}). Planı yüksəldin.")
+
+
+
 async def get_my_portfolio_item(pid: str, user: dict = Depends(require_role("provider"))):
     company = await db.companies.find_one({"owner_id": user["id"]})
     item = await db.portfolio.find_one({"id": pid, "company_id": company["id"]}, {"_id": 0})

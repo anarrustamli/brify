@@ -124,6 +124,26 @@ export default function CompanyProfile() {
         <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8">
           <h2 className="text-2xl font-bold tracking-tight text-slate-900">Şirkət haqqında</h2>
           <p className="text-slate-700 mt-4 leading-relaxed whitespace-pre-wrap">{c.about}</p>
+          {(c.categories?.length > 0 || c.subcategories) && (
+            <div className="mt-6 pt-6 border-t border-slate-100">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Kateqoriyalar</h4>
+              <div className="flex flex-wrap gap-2">
+                {(c.categories || []).map((cat) => (
+                  <Link key={cat} to={`/categories/${cat}`} className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-semibold hover:bg-blue-100">{cat}</Link>
+                ))}
+              </div>
+              {c.subcategories && Object.values(c.subcategories).flat().length > 0 && (
+                <>
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3 mt-5">İxtisaslaşma</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.values(c.subcategories).flat().map((s) => (
+                      <Link key={s} to={`/categories/${s}`} className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-medium hover:bg-slate-200">{s}</Link>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
           <div className="grid sm:grid-cols-2 gap-6 mt-6 pt-6 border-t border-slate-100">
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Sahələr</h4>
@@ -287,12 +307,20 @@ export default function CompanyProfile() {
               {c.website && <a href={c.website} className="flex items-center gap-2 text-slate-300 hover:text-white"><Globe className="w-4 h-4" />{c.website.replace(/https?:\/\//, "")}</a>}
               {c.email && <div className="flex items-center gap-2 text-slate-300"><Mail className="w-4 h-4" />{c.email}</div>}
               {c.phone && <div className="flex items-center gap-2 text-slate-300"><Phone className="w-4 h-4" />{c.phone}</div>}
-              {c.address && <div className="flex items-center gap-2 text-slate-300"><MapPin className="w-4 h-4" />{c.address}</div>}
+              {(c.full_address || c.address) && <div className="flex items-center gap-2 text-slate-300"><MapPin className="w-4 h-4" />{c.full_address || c.address}</div>}
+              {c.maps_url && <a href={c.maps_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-blue-300 font-semibold hover:text-blue-200 mt-3"><MapPin className="w-4 h-4" />Open in Google Maps <ChevronRight className="w-3 h-3" /></a>}
             </div>
           </div>
           <div className="flex flex-col gap-3 sm:items-end">
             <Button className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto" onClick={requireAuth(() => navigate("/buyer/briefs/new", { state: { providerId: c.id } }))}>Brief göndər</Button>
             <Button variant="outline" className="border-slate-700 bg-transparent text-white hover:bg-white/10 hover:text-white w-full sm:w-auto" onClick={requireAuth(() => navigate("/buyer/messages"))}>Mesaj yaz</Button>
+            {c.latitude && c.longitude && (
+              <iframe
+                title="map"
+                className="w-full h-44 rounded-lg mt-3 border border-slate-700"
+                src={`https://www.openstreetmap.org/export/embed.html?bbox=${c.longitude - 0.01}%2C${c.latitude - 0.01}%2C${c.longitude + 0.01}%2C${c.latitude + 0.01}&layer=mapnik&marker=${c.latitude}%2C${c.longitude}`}
+              />
+            )}
           </div>
         </div>
       </section>

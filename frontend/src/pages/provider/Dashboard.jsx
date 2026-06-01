@@ -9,11 +9,35 @@ import { Progress } from "@/components/ui/progress";
 export default function ProviderDashboard() {
   const [analytics, setAnalytics] = useState({});
   const [company, setCompany] = useState(null);
+  const [planStatus, setPlanStatus] = useState(null);
 
   useEffect(() => {
     api.get("/me/analytics").then((r) => setAnalytics(r.data)).catch(() => {});
     api.get("/me/company").then((r) => setCompany(r.data)).catch(() => {});
+    api.get("/me/plan-status").then((r) => setPlanStatus(r.data)).catch(() => {});
   }, []);
+
+  const renderLimit = (key, label) => {
+    if (!planStatus) return null;
+    const limit = planStatus.plan?.limits?.[key];
+    const used = planStatus.usage?.[key] || 0;
+    const unlimited = limit === -1 || limit === undefined;
+    const pct = unlimited ? 0 : Math.min(100, Math.round((used / Math.max(limit, 1)) * 100));
+    const isHigh = pct >= 80;
+    return (
+      <div key={key}>
+        <div className="flex justify-between text-xs mb-1">
+          <span className="text-slate-600 font-medium">{label}</span>
+          <span className={`font-semibold ${isHigh ? "text-rose-600" : "text-slate-900"}`}>{used} / {unlimited ? "∞" : limit}</span>
+        </div>
+        {!unlimited && (
+          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div className={`h-full ${isHigh ? "bg-rose-500" : "bg-blue-600"}`} style={{ width: `${pct}%` }} />
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -60,6 +84,23 @@ export default function ProviderDashboard() {
           <Button asChild size="sm" variant="link" className="p-0 mt-1 text-blue-600"><Link to="/provider/billing">Yenilə →</Link></Button>
         </div>
       </div>
+
+      {planStatus && (
+        <div className="bg-white border border-slate-200 rounded-xl p-6 mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-slate-900">Plan istifadəsi</h3>
+            <Button asChild size="sm" variant="link" className="text-blue-600 p-0"><Link to="/provider/billing">Plan dəyiş →</Link></Button>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {renderLimit("services", "Xidmətlər")}
+            {renderLimit("portfolio", "Portfolio")}
+            {renderLimit("case_studies", "Case Studies")}
+            {renderLimit("team", "Komanda")}
+            {renderLimit("certifications", "Sertifikatlar")}
+            {renderLimit("awards", "Mükafatlar")}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
