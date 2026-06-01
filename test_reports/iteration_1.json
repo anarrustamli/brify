@@ -1,0 +1,43 @@
+{
+  "summary": "Comprehensive backend API tests for BizMarket B2B Marketplace. 35/35 pytest cases pass against external URL covering public catalog (categories, companies, services, plans, ads, blog), full auth flow (login/demo-login/register/me with Bearer token), buyer flow (briefs, proposals received, shortlist, dashboard), provider flow (company CRUD, services CRUD, leads, proposals sent, analytics), admin flow (stats, companies actions, users/reviews/leads/briefs, ads/plans/settings/integrations/audit-logs), and full RBAC matrix (buyer<->provider<->admin endpoint isolation + unauthenticated 401).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "get_current_user (server.py:54)", "issue": "Authentication priority is cookie > Authorization header. If a stale access_token cookie exists in the client from a previous login, a subsequent request with a different Bearer token is silently ignored and the cookie identity wins. This bit the test harness (10/35 failed initially). Recommend: prefer Authorization header over cookie, OR clear cookie on every login response before setting a new one. Not a blocker but a real correctness/security smell."},
+      {"endpoint": "CORSMiddleware (server.py:908)", "issue": "allow_origins=['*'] with allow_credentials=True is invalid per CORS spec; browsers will reject credentialed requests. Should use explicit origin from env (e.g. CORS_ORIGINS) or disable credentials. Cookie httponly/secure/samesite=none are set correctly otherwise."},
+      {"endpoint": "POST /api/auth/register", "issue": "Password complexity is not enforced (e.g. accepts 'x' as password in negative tests). Recommend Pydantic validator for min length."},
+      {"endpoint": "PUT /api/admin/* and PUT /api/proposals/{pid}/status", "issue": "Body is typed as plain dict — no Pydantic validation. Allows arbitrary keys to be persisted into plans/settings/integrations docs."},
+      {"endpoint": "GET /api/companies", "issue": "verified/min_rating/size filters work, but 'verified=false' is treated as None by FastAPI Optional[bool]; only 'true' takes effect (string parsing). Minor."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Recommended: in get_current_user, prefer Authorization header over cookie, or always overwrite/clear access_token cookie on every login. Otherwise a client retaining a stale cookie will be authenticated as the wrong user.",
+    "Recommended: replace CORS allow_origins=['*'] with explicit origins from env when allow_credentials=True."
+  ],
+  "critical_code_review_comments": [
+    "server.py is 932 lines — consider splitting into routers (auth, public, buyer, provider, admin).",
+    "Many admin PUT endpoints accept untyped dict body — add Pydantic schemas.",
+    "Auth precedence (cookie before header) makes role switching from same browser session error-prone; document or invert order.",
+    "No rate-limiting / brute-force lockout on /auth/login (playbook expectation: lockout after 5 fails). Not implemented."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/__init__.py"
+  ],
+  "success_rate": {"backend": "100% (35/35)", "frontend": "not tested (skip frontend)"},
+  "test_credentials": "Loaded from /app/memory/test_credentials.md — admin@bizmarket.az/Admin123!, buyer@bizmarket.az/Buyer123!, provider@bizmarket.az/Provider123! — all valid.",
+  "seed_data_creation": "No additional seed needed. Backend self-seeds on startup (20 categories, 4 plans, 12 companies, demo users). Tests create TEST_ prefixed briefs/services/proposals; not cleaned up (low volume).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All backend endpoints in the review_request are working and asserted. Bearer-auth path tested; cookie path implicitly works since login sets cookie. IMPORTANT for next agent: server prefers cookie over Authorization header — if you share one requests.Session across roles, clear cookies between role switches or use isolated sessions. backend_test.py demonstrates the pattern (autouse _clear_session_cookies fixture).",
+  "rca_of_initial_test_failures": "10 initial failures were caused by the test harness, not the app: pytest's session-scoped requests.Session accumulated an access_token cookie from earlier /auth/login calls; server's get_current_user checks cookie BEFORE Authorization header, so the cookie identity overrode the Bearer token for subsequent authed tests. Fixed by adding autouse fixture that clears session.cookies before/after every test, and by giving each role its own isolated session in _login(). All 35 tests pass after fix."
+}
