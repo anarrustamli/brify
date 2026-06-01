@@ -122,6 +122,8 @@ async def run_seed(db):
         admin_email = os.environ.get("ADMIN_EMAIL", "admin@bizmarket.az")
         admin = await db.users.find_one({"email": admin_email})
         if admin:
+            # Ensure search-inline and sidebar ads exist (idempotent)
+            await _ensure_search_ads(db)
             await _write_test_credentials()
             return
 
@@ -489,7 +491,54 @@ async def run_seed(db):
             })
 
     print("Seed completed.")
+    await _ensure_search_ads(db)
     await _write_test_credentials()
+
+
+async def _ensure_search_ads(db):
+    """Ensure search-inline and sidebar ads exist (idempotent)."""
+    INLINE_ADS = [
+        {
+            "title": "Pro plana keçin və 30% endirim qazanın",
+            "subtitle": "Premium görünürlük və limitsiz lead-lər",
+            "image_url": "https://images.unsplash.com/photo-1551434678-e076c223a692?w=800&h=400&fit=crop",
+            "link": "/pricing",
+            "placement": "search-inline",
+            "cta": "Planlara bax",
+        },
+        {
+            "title": "Şirkətinizi sponsorlu edin",
+            "subtitle": "Axtarış nəticələrində öncə görün, lead-ləri 3x artırın",
+            "image_url": "https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?w=800&h=400&fit=crop",
+            "link": "/provider/advertising",
+            "placement": "search-inline",
+            "cta": "Reklam et",
+        },
+    ]
+    SIDEBAR_BANNERS = [
+        {
+            "title": "Featured Sponsor",
+            "subtitle": "Markaların güvəndiyi B2B platforma",
+            "image_url": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=600&fit=crop",
+            "link": "/pricing",
+            "placement": "search-sidebar",
+            "cta": "Provider ol",
+        },
+    ]
+    for ad in INLINE_ADS + SIDEBAR_BANNERS:
+        existing = await db.ads.find_one({"placement": ad["placement"], "title": ad["title"]})
+        if not existing:
+            await db.ads.insert_one({
+                "id": new_id(),
+                "status": "active",
+                "priority": 7,
+                "impressions": 0,
+                "clicks": 0,
+                "start_date": now_iso(),
+                "end_date": days_ago(-60),
+                "created_at": now_iso(),
+                **ad,
+            })
 
 
 async def _write_test_credentials():

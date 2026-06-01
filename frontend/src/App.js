@@ -42,7 +42,17 @@ import BuyerSettings from "@/pages/buyer/Settings";
 import ProviderDashboard from "@/pages/provider/Dashboard";
 import ProviderProfile from "@/pages/provider/CompanyProfileEdit";
 import ProviderServices from "@/pages/provider/Services";
+import ProviderServiceForm from "@/pages/provider/ServiceForm";
 import ProviderPortfolio from "@/pages/provider/Portfolio";
+import ProviderPortfolioForm from "@/pages/provider/PortfolioForm";
+import ProviderCaseStudies from "@/pages/provider/CaseStudies";
+import ProviderCaseStudyForm from "@/pages/provider/CaseStudyForm";
+import ProviderTeam from "@/pages/provider/Team";
+import ProviderTeamForm from "@/pages/provider/TeamMemberForm";
+import ProviderCertifications from "@/pages/provider/Certifications";
+import ProviderStatistics from "@/pages/provider/Statistics";
+import ProviderVisibility from "@/pages/provider/Visibility";
+import ProviderReviewsPage from "@/pages/provider/Reviews";
 import ProviderLeads from "@/pages/provider/Leads";
 import ProviderProposalsSent from "@/pages/provider/ProposalsSent";
 import ProviderAnalytics from "@/pages/provider/Analytics";
@@ -123,8 +133,26 @@ function App() {
             <Route element={<ProtectedRoute roles={["provider"]}><DashboardLayout role="provider" /></ProtectedRoute>}>
               <Route path="/provider/dashboard" element={<ProviderDashboard />} />
               <Route path="/provider/profile" element={<ProviderProfile />} />
+              <Route path="/provider/profile/description" element={<ProviderProfile />} />
+              <Route path="/provider/profile/contact" element={<ProviderProfile />} />
+              <Route path="/provider/profile/social" element={<ProviderProfile />} />
+              <Route path="/provider/profile/locations" element={<ProviderProfile />} />
+              <Route path="/provider/visibility" element={<ProviderVisibility />} />
               <Route path="/provider/services" element={<ProviderServices />} />
+              <Route path="/provider/services/new" element={<ProviderServiceForm />} />
+              <Route path="/provider/services/:id/edit" element={<ProviderServiceForm />} />
               <Route path="/provider/portfolio" element={<ProviderPortfolio />} />
+              <Route path="/provider/portfolio/new" element={<ProviderPortfolioForm />} />
+              <Route path="/provider/portfolio/:id/edit" element={<ProviderPortfolioForm />} />
+              <Route path="/provider/case-studies" element={<ProviderCaseStudies />} />
+              <Route path="/provider/case-studies/new" element={<ProviderCaseStudyForm />} />
+              <Route path="/provider/case-studies/:id/edit" element={<ProviderCaseStudyForm />} />
+              <Route path="/provider/team" element={<ProviderTeam />} />
+              <Route path="/provider/team/new" element={<ProviderTeamForm />} />
+              <Route path="/provider/team/:id/edit" element={<ProviderTeamForm />} />
+              <Route path="/provider/certifications" element={<ProviderCertifications />} />
+              <Route path="/provider/statistics" element={<ProviderStatistics />} />
+              <Route path="/provider/reviews" element={<ProviderReviewsPage />} />
               <Route path="/provider/leads" element={<ProviderLeads />} />
               <Route path="/provider/proposals" element={<ProviderProposalsSent />} />
               <Route path="/provider/analytics" element={<ProviderAnalytics />} />

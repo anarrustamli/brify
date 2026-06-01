@@ -1,0 +1,60 @@
+{
+  "summary": "Iteration-2 backend tests for newly-requested Case Studies / Team / Awards / Certificates / Provider-Reviews / Section-Visibility / Statistics endpoints. Regression suite from iteration_1 still 100% green (35/35), BUT the new endpoints listed in the review request are NOT IMPLEMENTED in /app/backend/server.py. Only 3/20 new-feature tests pass (public case-studies, public awards, demo provider login). 17/20 fail with 404 because the endpoints do not exist, and CompanyUpdate model has not been expanded with the new fields.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "GET /api/me/services/{id}", "issue": "Endpoint NOT IMPLEMENTED — only POST/PUT/DELETE and list GET /api/me/services exist (server.py:412-447). New dedicated-page edit flow cannot fetch a single service for the provider.", "priority": "CRITICAL"},
+      {"endpoint": "GET /api/me/portfolio/{id}", "issue": "Endpoint NOT IMPLEMENTED. server.py:470-491 only has list GET, POST, DELETE — no get-by-id, no PUT.", "priority": "CRITICAL"},
+      {"endpoint": "PUT /api/me/portfolio/{id}", "issue": "Endpoint NOT IMPLEMENTED (see server.py:470-491). Cannot update a portfolio entry from dedicated edit page.", "priority": "CRITICAL"},
+      {"endpoint": "GET /api/me/case-studies (+POST, GET by id, PUT, DELETE)", "issue": "Entire Case Studies CRUD module is missing. Only the PUBLIC read endpoint /api/public/companies/{cid}/case-studies exists (server.py:725). No provider-scoped CRUD; collection db.case_studies is queried publicly but never written to.", "priority": "CRITICAL"},
+      {"endpoint": "GET /api/me/team (+POST, GET by id, PUT, DELETE)", "issue": "Entire Team Members CRUD module is missing. db.team_members is read by the public company-detail endpoint (server.py:310) but no provider endpoints to manage it.", "priority": "CRITICAL"},
+      {"endpoint": "GET /api/me/certificates (+POST, DELETE)", "issue": "Entire Certificates CRUD module is missing. db.certificates is read in public company-detail but never written via API.", "priority": "CRITICAL"},
+      {"endpoint": "GET /api/me/awards (+POST, DELETE)", "issue": "Entire Awards CRUD module is missing. Only PUBLIC /api/public/companies/{cid}/awards exists (server.py:730). No provider-scoped writes.", "priority": "CRITICAL"},
+      {"endpoint": "GET /api/me/reviews", "issue": "Endpoint NOT IMPLEMENTED. Provider has no way to list reviews about own company.", "priority": "HIGH"},
+      {"endpoint": "PUT /api/me/company", "issue": "CompanyUpdate Pydantic model (server.py:315-330) does NOT accept the new fields: short_description, whatsapp, address, maps_url, branches, service_countries, tax_number, statistics, sections. They are silently dropped because Pydantic discards unknown attributes — verified via GET roundtrip: none of these 9 fields persist on the company doc.", "priority": "CRITICAL"}
+    ],
+    "minor": [
+      {"endpoint": "Pre-existing minors from iteration_1 still open", "issue": "Auth precedence (cookie before Bearer header), CORS allow_origins=['*'] with credentials, no password complexity, untyped admin PUT bodies, no brute-force lockout. None re-tested this round; see iteration_1.json."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_new_features.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/iteration_2_new_features.xml",
+    "/app/test_reports/pytest/iteration_2_regression.xml"
+  ],
+  "action_items": [
+    "Implement provider-scoped CRUD for Case Studies (GET list, POST, GET by id, PUT, DELETE) at /api/me/case-studies. Scope to provider's company via owner_id->company_id lookup, same pattern as services/portfolio.",
+    "Implement Team Members CRUD at /api/me/team (collection: team_members). All 5 operations.",
+    "Implement Certificates CRUD at /api/me/certificates (GET list, POST, DELETE). Collection: certificates.",
+    "Implement Awards CRUD at /api/me/awards (GET list, POST, DELETE). Collection: awards.",
+    "Implement GET /api/me/reviews — list reviews where company_id == provider's company.",
+    "Add missing GET /api/me/services/{sid} (return service scoped to owner's company, 404 otherwise).",
+    "Add GET /api/me/portfolio/{pid} and PUT /api/me/portfolio/{pid}. Currently only list/create/delete exist.",
+    "Expand CompanyUpdate model with new optional fields: short_description (str), whatsapp (str), address (str), maps_url (str), branches (List[dict]), service_countries (List[str]), tax_number (str), statistics (dict), sections (dict). All currently silently dropped by Pydantic.",
+    "Ensure all new /api/me/* endpoints return 403 (not 404) for buyer/admin via require_role('provider')."
+  ],
+  "critical_code_review_comments": [
+    "server.py is now at 950 lines — splitting into routers (provider_router, public_router, admin_router) becomes urgent before adding the 4 new CRUD modules (case-studies, team, certificates, awards) and missing sub-endpoints (5+ endpoints to add).",
+    "Existing provider sub-resource endpoints (services PUT/DELETE) do not check that company exists before mutating — if owner has no company, mongo writes with company_id=None. Add 404 guard once getting copied for the new CRUD modules.",
+    "CompanyUpdate uses payload.dict() with implicit field set; if new fields are added, also confirm profile_completion weighting reflects them (currently fixed list at server.py:349)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_new_features.py (created)"
+  ],
+  "success_rate": {
+    "backend_new_features": "15% (3/20 pass — only public case-studies/awards + demo provider login)",
+    "backend_regression": "100% (35/35 from iteration_1 still pass)",
+    "frontend": "not tested (skip frontend per request)"
+  },
+  "test_credentials": "Loaded from /app/memory/test_credentials.md — provider@bizmarket.az/Provider123!, buyer@bizmarket.az/Buyer123!, admin@bizmarket.az/Admin123!. All valid.",
+  "seed_data_creation": "None. Tests create TEST_ prefixed docs and clean up on success path; failed tests left no orphans because the create POSTs returned 404 (not implemented).",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration_1 tests in /app/backend/tests/backend_test.py remain a clean regression baseline (35/35). New-feature tests in /app/backend/tests/test_new_features.py drive the 9 missing capabilities. Once E1 implements the listed endpoints + expands CompanyUpdate, simply re-run `pytest /app/backend/tests/ -v` and expect ~55 passing. The same auth-cookie-vs-Bearer footgun from iteration_1 still applies — use isolated requests.Session per role.",
+  "rca_of_the_issue": "The review_request claimed 'new endpoints around lines 350-550 (Case Studies, Team, Certificates, Awards, Reviews, Public sub-resources)'. Reality on disk: only the two PUBLIC endpoints exist (case-studies & awards at lines 725-732). The provider-scoped /api/me/{case-studies,team,certificates,awards,reviews} routes were never added, and CompanyUpdate was never expanded. The previous iteration's seed already creates collections (team_members, certificates) that the public company-detail endpoint reads, so the data path exists — only the HTTP handlers are missing. Reproduction: run `grep -n 'case-studies\\|/me/team\\|/me/certificates\\|/me/awards\\|/me/reviews' /app/backend/server.py` — only the two public lines appear."
+}

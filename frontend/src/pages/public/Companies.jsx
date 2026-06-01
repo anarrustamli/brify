@@ -8,12 +8,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import CompanyCard from "@/components/marketplace/CompanyCard";
+import { InlineAdCard, SidebarAd, TopBannerAd } from "@/components/marketplace/AdCards";
 
 export default function Companies() {
   const [params, setParams] = useSearchParams();
   const [companies, setCompanies] = useState([]);
   const [total, setTotal] = useState(0);
   const [categories, setCategories] = useState([]);
+  const [inlineAds, setInlineAds] = useState([]);
+  const [sidebarAd, setSidebarAd] = useState(null);
+  const [topAd, setTopAd] = useState(null);
   const [filters, setFilters] = useState({
     q: params.get("q") || "",
     category: params.get("category") || "",
@@ -26,7 +30,12 @@ export default function Companies() {
   const [loading, setLoading] = useState(true);
   const [compared, setCompared] = useState([]);
 
-  useEffect(() => { api.get("/categories").then((r) => setCategories(r.data)); }, []);
+  useEffect(() => {
+    api.get("/categories").then((r) => setCategories(r.data));
+    api.get("/ads?placement=search-inline").then((r) => setInlineAds(r.data));
+    api.get("/ads?placement=search-sidebar").then((r) => setSidebarAd(r.data[0] || null));
+    api.get("/ads?placement=search-top").then((r) => setTopAd(r.data[0] || null));
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -119,6 +128,7 @@ export default function Companies() {
               </Button>
             </div>
           </div>
+          {sidebarAd && <div className="hidden lg:block"><SidebarAd ad={sidebarAd} /></div>}
         </aside>
 
         {/* Results */}
@@ -149,11 +159,20 @@ export default function Companies() {
               ))}
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 gap-5">
-              {companies.map((c) => (
-                <CompanyCard key={c.id} company={c} showCompare compared={compared.includes(c.id)} onCompare={() => toggleCompare(c.id)} />
-              ))}
-            </div>
+            <>
+              {topAd && <TopBannerAd ad={topAd} />}
+              <div className="grid md:grid-cols-2 gap-5">
+                {companies.flatMap((c, idx) => {
+                  const out = [
+                    <CompanyCard key={c.id} company={c} showCompare compared={compared.includes(c.id)} onCompare={() => toggleCompare(c.id)} />
+                  ];
+                  if ((idx + 1) % 6 === 0 && inlineAds[Math.floor(idx / 6) % inlineAds.length]) {
+                    out.push(<InlineAdCard key={`ad-${idx}`} ad={inlineAds[Math.floor(idx / 6) % inlineAds.length]} />);
+                  }
+                  return out;
+                })}
+              </div>
+            </>
           )}
         </div>
       </div>

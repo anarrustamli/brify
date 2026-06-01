@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="17" skipped="0" tests="20" time="4.939" timestamp="2026-06-01T20:57:19.890950+00:00" hostname="agent-env-76e00a41-2641-4cbe-9e3f-2270aac088cd"><testcase classname="backend.tests.test_new_features.TestServiceGetById" name="test_get_my_service_by_id" time="0.761"><failure message="AssertionError: Expected 200, got 405: {&quot;detail&quot;:&quot;Method Not Allowed&quot;}&#10;assert 405 == 200&#10; +  where 405 = &lt;Response [405]&gt;.status_code">backend/tests/test_new_features.py:75: in test_get_my_service_by_id
+    assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.text}"
+E   AssertionError: Expected 200, got 405: {"detail":"Method Not Allowed"}
+E   assert 405 == 200
+E    +  where 405 = &lt;Response [405]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_new_features.TestPortfolioGetByIdAndUpdate" name="test_get_and_update_my_portfolio" time="0.256"><failure message="AssertionError: GET /me/portfolio/{id} not implemented: 405&#10;assert 405 == 200&#10; +  where 405 = &lt;Response [405]&gt;.status_code">backend/tests/test_new_features.py:93: in test_get_and_update_my_portfolio
+    assert r.status_code == 200, f"GET /me/portfolio/{{id}} not implemented: {r.status_code}"
+E   AssertionError: GET /me/portfolio/{id} not implemented: 405
+E   assert 405 == 200
+E    +  where 405 = &lt;Response [405]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_new_features.TestCaseStudiesCRUD" name="test_case_studies_full_crud" time="0.110"><failure message="AssertionError: GET /me/case-studies missing: 404&#10;assert 404 == 200&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_new_features.py:113: in test_case_studies_full_crud
+    assert r0.status_code == 200, f"GET /me/case-studies missing: {r0.status_code}"
+E   AssertionError: GET /me/case-studies missing: 404
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_new_features.TestTeamCRUD" name="test_team_full_crud" time="0.181"><failure message="AssertionError: GET /me/team missing: 404&#10;assert 404 == 200&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_new_features.py:146: in test_team_full_crud
+    assert r0.status_code == 200, f"GET /me/team missing: {r0.status_code}"
+E   AssertionError: GET /me/team missing: 404
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_new_features.TestCertificatesCRUD" name="test_certificates_crud" time="0.099"><failure message="AssertionError: GET /me/certificates missing: 404&#10;assert 404 == 200&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_new_features.py:169: in test_certificates_crud
+    assert r0.status_code == 200, f"GET /me/certificates missing: {r0.status_code}"
+E   AssertionError: GET /me/certificates missing: 404
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_new_features.TestAwardsCRUD" name="test_awards_crud" time="0.158"><failure message="AssertionError: GET /me/awards missing: 404&#10;assert 404 == 200&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_new_features.py:185: in test_awards_crud
+    assert r0.status_code == 200, f"GET /me/awards missing: {r0.status_code}"
+E   AssertionError: GET /me/awards missing: 404
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_new_features.TestProviderReviewsList" name="test_get_my_reviews" time="0.112"><failure message="AssertionError: GET /me/reviews missing: 404&#10;assert 404 == 200&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_new_features.py:201: in test_get_my_reviews
+    assert r.status_code == 200, f"GET /me/reviews missing: {r.status_code}"
+E   AssertionError: GET /me/reviews missing: 404
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_new_features.TestCompanyUpdateNewFields" name="test_company_update_new_fields_persist" time="0.268"><failure message="AssertionError: Fields not persisted on company doc: ['short_description', 'whatsapp', 'address', 'maps_url', 'branches', 'service_countries', 'tax_number', 'statistics', 'sections']. Got keys: ['id', 'owner_id', 'name', 'slug', 'slogan', 'about', 'location', 'founded_year', 'company_size', 'categories', 'industries', 'website', 'email', 'phone', 'social', 'languages', 'logo_url', 'cover_url', 'rating', 'review_count', 'response_time', 'verified', 'featured', 'sponsored', 'status', 'plan', 'profile_completion', 'views_month', 'shortlist_count', 'created_at']&#10;assert not ['short_description', 'whatsapp', 'address', 'maps_url', 'branches', 'service_countries', ...]">backend/tests/test_new_features.py:231: in test_company_update_new_fields_persist
+    assert not missing, f"Fields not persisted on company doc: {missing}. Got keys: {list(body.keys())}"
+E   AssertionError: Fields not persisted on company doc: ['short_description', 'whatsapp', 'address', 'maps_url', 'branches', 'service_countries', 'tax_number', 'statistics', 'sections']. Got keys: ['id', 'owner_id', 'name', 'slug', 'slogan', 'about', 'location', 'founded_year', 'company_size', 'categories', 'industries', 'website', 'email', 'phone', 'social', 'languages', 'logo_url', 'cover_url', 'rating', 'review_count', 'response_time', 'verified', 'featured', 'sponsored', 'status', 'plan', 'profile_completion', 'views_month', 'shortlist_count', 'created_at']
+E   assert not ['short_description', 'whatsapp', 'address', 'maps_url', 'branches', 'service_countries', ...]</failure></testcase><testcase classname="backend.tests.test_new_features.TestPublicSubResources" name="test_public_case_studies" time="0.234" /><testcase classname="backend.tests.test_new_features.TestPublicSubResources" name="test_public_awards" time="0.211" /><testcase classname="backend.tests.test_new_features.TestRBACNewEndpoints" name="test_buyer_blocked[/me/case-studies]" time="0.517"><failure message="AssertionError: buyer should be 403 at /me/case-studies, got 404&#10;assert 404 == 403&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_new_features.py:265: in test_buyer_blocked
+    assert r.status_code == 403, f"buyer should be 403 at {path}, got {r.status_code}"
+E   AssertionError: buyer should be 403 at /me/case-studies, got 404
+E   assert 404 == 403
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_new_features.TestRBACNewEndpoints" name="test_buyer_blocked[/me/team]" time="0.148"><failure message="AssertionError: buyer should be 403 at /me/team, got 404&#10;assert 404 == 403&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_new_features.py:265: in test_buyer_blocked
+    assert r.status_code == 403, f"buyer should be 403 at {path}, got {r.status_code}"
+E   AssertionError: buyer should be 403 at /me/team, got 404
+E   assert 404 == 403
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_new_features.TestRBACNewEndpoints" name="test_buyer_blocked[/me/awards]" time="0.120"><failure message="AssertionError: buyer should be 403 at /me/awards, got 404&#10;assert 404 == 403&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_new_features.py:265: in test_buyer_blocked
+    assert r.status_code == 403, f"buyer should be 403 at {path}, got {r.status_code}"
+E   AssertionError: buyer should be 403 at /me/awards, got 404
+E   assert 404 == 403
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_new_features.TestRBACNewEndpoints" name="test_buyer_blocked[/me/certificates]" time="0.107"><failure message="AssertionError: buyer should be 403 at /me/certificates, got 404&#10;assert 404 == 403&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_new_features.py:265: in test_buyer_blocked
+    assert r.status_code == 403, f"buyer should be 403 at {path}, got {r.status_code}"
+E   AssertionError: buyer should be 403 at /me/certificates, got 404
+E   assert 404 == 403
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_new_features.TestRBACNewEndpoints" name="test_buyer_blocked[/me/reviews]" time="0.105"><failure message="AssertionError: buyer should be 403 at /me/reviews, got 404&#10;assert 404 == 403&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_new_features.py:265: in test_buyer_blocked
+    assert r.status_code == 403, f"buyer should be 403 at {path}, got {r.status_code}"
+E   AssertionError: buyer should be 403 at /me/reviews, got 404
+E   assert 404 == 403
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_new_features.TestRBACNewEndpoints" name="test_admin_blocked_from_provider_scoped[/me/case-studies]" time="0.453"><failure message="AssertionError: admin should be 403 at /me/case-studies, got 404&#10;assert 404 == 403&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_new_features.py:273: in test_admin_blocked_from_provider_scoped
+    assert r.status_code == 403, f"admin should be 403 at {path}, got {r.status_code}"
+E   AssertionError: admin should be 403 at /me/case-studies, got 404
+E   assert 404 == 403
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_new_features.TestRBACNewEndpoints" name="test_admin_blocked_from_provider_scoped[/me/team]" time="0.117"><failure message="AssertionError: admin should be 403 at /me/team, got 404&#10;assert 404 == 403&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_new_features.py:273: in test_admin_blocked_from_provider_scoped
+    assert r.status_code == 403, f"admin should be 403 at {path}, got {r.status_code}"
+E   AssertionError: admin should be 403 at /me/team, got 404
+E   assert 404 == 403
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_new_features.TestRBACNewEndpoints" name="test_admin_blocked_from_provider_scoped[/me/awards]" time="0.112"><failure message="AssertionError: admin should be 403 at /me/awards, got 404&#10;assert 404 == 403&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_new_features.py:273: in test_admin_blocked_from_provider_scoped
+    assert r.status_code == 403, f"admin should be 403 at {path}, got {r.status_code}"
+E   AssertionError: admin should be 403 at /me/awards, got 404
+E   assert 404 == 403
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_new_features.TestRBACNewEndpoints" name="test_admin_blocked_from_provider_scoped[/me/certificates]" time="0.114"><failure message="AssertionError: admin should be 403 at /me/certificates, got 404&#10;assert 404 == 403&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_new_features.py:273: in test_admin_blocked_from_provider_scoped
+    assert r.status_code == 403, f"admin should be 403 at {path}, got {r.status_code}"
+E   AssertionError: admin should be 403 at /me/certificates, got 404
+E   assert 404 == 403
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_new_features.TestDemoLoginProviderStillWorks" name="test_provider_login" time="0.381" /></testsuite></testsuites>

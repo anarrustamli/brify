@@ -7,12 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import ServiceCard from "@/components/marketplace/ServiceCard";
+import { InlineAdCard, SidebarAd, TopBannerAd } from "@/components/marketplace/AdCards";
 
 export default function Services() {
   const [params] = useSearchParams();
   const [services, setServices] = useState([]);
   const [total, setTotal] = useState(0);
   const [categories, setCategories] = useState([]);
+  const [inlineAds, setInlineAds] = useState([]);
+  const [sidebarAd, setSidebarAd] = useState(null);
+  const [topAd, setTopAd] = useState(null);
   const [filters, setFilters] = useState({
     q: params.get("q") || "",
     category: params.get("category") || "",
@@ -22,7 +26,12 @@ export default function Services() {
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { api.get("/categories").then((r) => setCategories(r.data)); }, []);
+  useEffect(() => {
+    api.get("/categories").then((r) => setCategories(r.data));
+    api.get("/ads?placement=search-inline").then((r) => setInlineAds(r.data));
+    api.get("/ads?placement=search-sidebar").then((r) => setSidebarAd(r.data[0] || null));
+    api.get("/ads?placement=search-top").then((r) => setTopAd(r.data[0] || null));
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -77,6 +86,7 @@ export default function Services() {
               </Button>
             </div>
           </div>
+          {sidebarAd && <div className="hidden lg:block"><SidebarAd ad={sidebarAd} /></div>}
         </aside>
 
         <div>
@@ -100,9 +110,18 @@ export default function Services() {
               Heç bir xidmət tapılmadı. Filtrləri yumşaldın və ya başqa açar söz yoxlayın.
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {services.map((s) => <ServiceCard key={s.id} service={s} />)}
-            </div>
+            <>
+              {topAd && <TopBannerAd ad={topAd} />}
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {services.flatMap((s, idx) => {
+                  const out = [<ServiceCard key={s.id} service={s} />];
+                  if ((idx + 1) % 6 === 0 && inlineAds[Math.floor(idx / 6) % inlineAds.length]) {
+                    out.push(<InlineAdCard key={`ad-${idx}`} ad={inlineAds[Math.floor(idx / 6) % inlineAds.length]} />);
+                  }
+                  return out;
+                })}
+              </div>
+            </>
           )}
         </div>
       </div>

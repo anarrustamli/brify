@@ -453,11 +453,16 @@ class PortfolioIn(BaseModel):
     client_name: str
     industry: Optional[str] = ""
     service_type: Optional[str] = ""
+    project_duration: Optional[str] = ""
+    description: Optional[str] = ""
     problem: Optional[str] = ""
     solution: Optional[str] = ""
     result: Optional[str] = ""
     metrics: Optional[str] = ""
     image_url: Optional[str] = ""
+    gallery: Optional[List[str]] = []
+    video_url: Optional[str] = ""
+    website_url: Optional[str] = ""
     link: Optional[str] = ""
     visibility: Optional[str] = "public"
 
@@ -714,6 +719,17 @@ async def get_post(slug: str):
     if not post:
         raise HTTPException(404, "Post not found")
     return post
+
+
+# ------- Public read-only listings for company sub-resources -------
+@api_router.get("/public/companies/{cid}/case-studies")
+async def public_case_studies(cid: str):
+    return await db.case_studies.find({"company_id": cid, "visibility": {"$ne": "private"}}, {"_id": 0}).sort("created_at", -1).to_list(100)
+
+
+@api_router.get("/public/companies/{cid}/awards")
+async def public_awards(cid: str):
+    return await db.awards.find({"company_id": cid}, {"_id": 0}).sort("year", -1).to_list(100)
 
 
 # ------- Admin -------
