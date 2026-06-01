@@ -315,6 +315,7 @@ async def get_company(slug: str):
 class CompanyUpdate(BaseModel):
     name: Optional[str] = None
     slogan: Optional[str] = None
+    short_description: Optional[str] = None
     about: Optional[str] = None
     location: Optional[str] = None
     founded_year: Optional[int] = None
@@ -324,10 +325,18 @@ class CompanyUpdate(BaseModel):
     website: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
+    whatsapp: Optional[str] = None
+    address: Optional[str] = None
+    maps_url: Optional[str] = None
     social: Optional[dict] = None
     languages: Optional[List[str]] = None
     logo_url: Optional[str] = None
     cover_url: Optional[str] = None
+    branches: Optional[List[str]] = None
+    service_countries: Optional[List[str]] = None
+    tax_number: Optional[str] = None
+    statistics: Optional[dict] = None
+    sections: Optional[dict] = None
 
 
 @api_router.get("/me/company")
