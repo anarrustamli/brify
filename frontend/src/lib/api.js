@@ -5,13 +5,14 @@ export const API = `${BASE}/api`;
 
 const instance = axios.create({
   baseURL: API,
-  withCredentials: false,
+  withCredentials: true,
   headers: { "Content-Type": "application/json" },
 });
 
-// Attach Bearer from localStorage if available
+// Attach Bearer from sessionStorage as fallback for browsers/devices blocking 3rd-party cookies.
+// Primary auth flows through httpOnly cookies set by the backend.
 instance.interceptors.request.use((config) => {
-  const t = typeof window !== "undefined" ? localStorage.getItem("bm_token") : null;
+  const t = typeof window !== "undefined" ? sessionStorage.getItem("bm_token") : null;
   if (t) config.headers.Authorization = `Bearer ${t}`;
   return config;
 });

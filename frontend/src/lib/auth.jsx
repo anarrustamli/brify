@@ -24,21 +24,21 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const { data } = await api.post("/auth/login", { email, password });
-    if (data.token) localStorage.setItem("bm_token", data.token);
+    if (data.token) sessionStorage.setItem("bm_token", data.token);
     setUser(data.user);
     return data.user;
   };
 
   const register = async (payload) => {
     const { data } = await api.post("/auth/register", payload);
-    if (data.token) localStorage.setItem("bm_token", data.token);
+    if (data.token) sessionStorage.setItem("bm_token", data.token);
     setUser(data.user);
     return data.user;
   };
 
   const demoLogin = async (role) => {
     const { data } = await api.post("/auth/demo-login", { role });
-    if (data.token) localStorage.setItem("bm_token", data.token);
+    if (data.token) sessionStorage.setItem("bm_token", data.token);
     setUser(data.user);
     return data.user;
   };
@@ -46,8 +46,12 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     try {
       await api.post("/auth/logout");
-    } catch {}
-    localStorage.removeItem("bm_token");
+    } catch (err) {
+      // Non-fatal: token may already be invalid server-side
+      console.error("Logout request failed:", err);
+    }
+    sessionStorage.removeItem("bm_token");
+    localStorage.removeItem("bm_token"); // clean up legacy
     setUser(null);
   };
 

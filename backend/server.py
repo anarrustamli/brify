@@ -230,10 +230,10 @@ async def category_tree():
     parents = [c for c in cats if not c.get("parent_slug")]
     children_by_parent = {}
     for c in cats:
-        p = c.get("parent_slug")
-        if p:
-            children_by_parent.setdefault(p, []).append(c)
-    return [{**p, "children": children_by_parent.get(p["slug"], [])} for p in parents]
+        parent = c.get("parent_slug")
+        if parent:
+            children_by_parent.setdefault(parent, []).append(c)
+    return [{**parent_cat, "children": children_by_parent.get(parent_cat["slug"], [])} for parent_cat in parents]
 
 
 @api_router.get("/categories/{slug}")
@@ -1238,7 +1238,7 @@ app.include_router(api_router)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],
+    allow_origin_regex=os.environ.get("CORS_ORIGIN_REGEX", r"https?://.*"),
     allow_methods=["*"],
     allow_headers=["*"],
 )

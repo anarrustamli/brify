@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Heart, Trash2, GitCompare } from "lucide-react";
 import api from "@/lib/api";
@@ -10,8 +10,8 @@ export default function BuyerShortlist() {
   const [companies, setCompanies] = useState([]);
   const [compared, setCompared] = useState([]);
 
-  const load = () => api.get("/me/shortlist").then((r) => setCompanies(r.data));
-  useEffect(() => { load(); }, []);
+  const load = useCallback(() => api.get("/me/shortlist").then((r) => setCompanies(r.data)), []);
+  useEffect(() => { load(); }, [load]);
 
   const remove = async (id) => {
     await api.delete(`/me/shortlist/${id}`);

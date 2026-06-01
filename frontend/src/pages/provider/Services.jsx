@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Trash2, Edit, Copy } from "lucide-react";
 import api from "@/lib/api";
@@ -11,8 +11,8 @@ import { toast } from "sonner";
 
 export default function Services() {
   const [items, setItems] = useState([]);
-  const load = () => api.get("/me/services").then((r) => setItems(r.data));
-  useEffect(() => { load(); }, []);
+  const load = useCallback(() => api.get("/me/services").then((r) => setItems(r.data)), []);
+  useEffect(() => { load(); }, [load]);
 
   const remove = async (id) => {
     if (!window.confirm("Silmək istəyirsiniz?")) return;
