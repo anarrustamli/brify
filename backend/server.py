@@ -567,6 +567,15 @@ def _limit_or_unlimited(plan: dict, key: str) -> Optional[int]:
 
 
 async def _check_plan_limit(company: dict, key: str, current_count: int):
+    # Per-company custom override beats plan
+    custom = (company or {}).get("custom_limits") or {}
+    if key in custom:
+        limit = custom[key]
+        if limit is None or limit == -1:
+            return
+        if current_count >= int(limit):
+            raise HTTPException(402, f"Plan limit reached: {key} ({limit}). Planı yüksəldin.")
+        return
     plan = await db.plans.find_one({"slug": company.get("plan", "free")})
     limit = _limit_or_unlimited(plan, key)
     if limit is not None and current_count >= limit:
@@ -1058,6 +1067,19 @@ async def update_company_status(cid: str, body: dict, user: dict = Depends(requi
 @api_router.put("/admin/companies/{cid}/feature")
 async def feature_company(cid: str, body: dict, user: dict = Depends(require_role("admin"))):
     await db.companies.update_one({"id": cid}, {"$set": {"featured": bool(body.get("featured", True))}})
+    return {"ok": True}
+
+
+@api_router.put("/admin/companies/{cid}/plan")
+async def assign_plan(cid: str, body: dict, user: dict = Depends(require_role("admin"))):
+    plan = body.get("plan")
+    if not plan:
+        raise HTTPException(400, "plan is required")
+    update = {"plan": plan}
+    # Optional per-company limit override (custom enterprise)
+    if "custom_limits" in body and isinstance(body["custom_limits"], dict):
+        update["custom_limits"] = body["custom_limits"]
+    await db.companies.update_one({"id": cid}, {"$set": update})
     return {"ok": True}
 
 
