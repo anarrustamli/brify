@@ -491,6 +491,214 @@ async def delete_portfolio(pid: str, user: dict = Depends(require_role("provider
     return {"ok": True}
 
 
+@api_router.get("/me/portfolio/{pid}")
+async def get_my_portfolio_item(pid: str, user: dict = Depends(require_role("provider"))):
+    company = await db.companies.find_one({"owner_id": user["id"]})
+    item = await db.portfolio.find_one({"id": pid, "company_id": company["id"]}, {"_id": 0})
+    if not item:
+        raise HTTPException(404, "Portfolio not found")
+    return item
+
+
+@api_router.put("/me/portfolio/{pid}")
+async def update_portfolio(pid: str, payload: PortfolioIn, user: dict = Depends(require_role("provider"))):
+    company = await db.companies.find_one({"owner_id": user["id"]})
+    await db.portfolio.update_one({"id": pid, "company_id": company["id"]}, {"$set": payload.dict()})
+    return {"ok": True}
+
+
+@api_router.get("/me/services/{sid}")
+async def get_my_service(sid: str, user: dict = Depends(require_role("provider"))):
+    company = await db.companies.find_one({"owner_id": user["id"]})
+    s = await db.services.find_one({"id": sid, "company_id": company["id"]}, {"_id": 0})
+    if not s:
+        raise HTTPException(404, "Service not found")
+    return s
+
+
+# ------- Case Studies -------
+class CaseStudyIn(BaseModel):
+    title: str
+    client_name: str
+    industry: Optional[str] = ""
+    challenge: str
+    solution: str
+    results: str
+    metrics: Optional[str] = ""
+    before_after: Optional[str] = ""
+    cover_url: Optional[str] = ""
+    images: Optional[List[str]] = []
+    attachments: Optional[List[str]] = []
+    visibility: Optional[str] = "public"
+
+
+@api_router.get("/me/case-studies")
+async def my_case_studies(user: dict = Depends(require_role("provider"))):
+    company = await db.companies.find_one({"owner_id": user["id"]})
+    if not company:
+        return []
+    return await db.case_studies.find({"company_id": company["id"]}, {"_id": 0}).to_list(200)
+
+
+@api_router.get("/me/case-studies/{cid}")
+async def get_case_study(cid: str, user: dict = Depends(require_role("provider"))):
+    company = await db.companies.find_one({"owner_id": user["id"]})
+    item = await db.case_studies.find_one({"id": cid, "company_id": company["id"]}, {"_id": 0})
+    if not item:
+        raise HTTPException(404, "Case study not found")
+    return item
+
+
+@api_router.post("/me/case-studies")
+async def create_case_study(payload: CaseStudyIn, user: dict = Depends(require_role("provider"))):
+    company = await db.companies.find_one({"owner_id": user["id"]})
+    doc = {"id": new_id(), "company_id": company["id"], "created_at": now_iso(), **payload.dict()}
+    await db.case_studies.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+
+@api_router.put("/me/case-studies/{cid}")
+async def update_case_study(cid: str, payload: CaseStudyIn, user: dict = Depends(require_role("provider"))):
+    company = await db.companies.find_one({"owner_id": user["id"]})
+    await db.case_studies.update_one({"id": cid, "company_id": company["id"]}, {"$set": payload.dict()})
+    return {"ok": True}
+
+
+@api_router.delete("/me/case-studies/{cid}")
+async def delete_case_study(cid: str, user: dict = Depends(require_role("provider"))):
+    company = await db.companies.find_one({"owner_id": user["id"]})
+    await db.case_studies.delete_one({"id": cid, "company_id": company["id"]})
+    return {"ok": True}
+
+
+# ------- Team -------
+class TeamMemberIn(BaseModel):
+    name: str
+    role: str
+    bio: Optional[str] = ""
+    photo_url: Optional[str] = ""
+    linkedin: Optional[str] = ""
+    email: Optional[str] = ""
+    sort_order: Optional[int] = 0
+
+
+@api_router.get("/me/team")
+async def my_team(user: dict = Depends(require_role("provider"))):
+    company = await db.companies.find_one({"owner_id": user["id"]})
+    if not company:
+        return []
+    return await db.team_members.find({"company_id": company["id"]}, {"_id": 0}).sort("sort_order", 1).to_list(200)
+
+
+@api_router.get("/me/team/{tid}")
+async def get_team_member(tid: str, user: dict = Depends(require_role("provider"))):
+    company = await db.companies.find_one({"owner_id": user["id"]})
+    item = await db.team_members.find_one({"id": tid, "company_id": company["id"]}, {"_id": 0})
+    if not item:
+        raise HTTPException(404, "Team member not found")
+    return item
+
+
+@api_router.post("/me/team")
+async def create_team_member(payload: TeamMemberIn, user: dict = Depends(require_role("provider"))):
+    company = await db.companies.find_one({"owner_id": user["id"]})
+    doc = {"id": new_id(), "company_id": company["id"], "created_at": now_iso(), **payload.dict()}
+    await db.team_members.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+
+@api_router.put("/me/team/{tid}")
+async def update_team_member(tid: str, payload: TeamMemberIn, user: dict = Depends(require_role("provider"))):
+    company = await db.companies.find_one({"owner_id": user["id"]})
+    await db.team_members.update_one({"id": tid, "company_id": company["id"]}, {"$set": payload.dict()})
+    return {"ok": True}
+
+
+@api_router.delete("/me/team/{tid}")
+async def delete_team_member(tid: str, user: dict = Depends(require_role("provider"))):
+    company = await db.companies.find_one({"owner_id": user["id"]})
+    await db.team_members.delete_one({"id": tid, "company_id": company["id"]})
+    return {"ok": True}
+
+
+# ------- Certificates -------
+class CertificateIn(BaseModel):
+    name: str
+    issuer: str
+    issue_date: Optional[str] = ""
+    expiry_date: Optional[str] = ""
+    image_url: Optional[str] = ""
+
+
+@api_router.get("/me/certificates")
+async def my_certificates(user: dict = Depends(require_role("provider"))):
+    company = await db.companies.find_one({"owner_id": user["id"]})
+    if not company:
+        return []
+    return await db.certificates.find({"company_id": company["id"]}, {"_id": 0}).to_list(200)
+
+
+@api_router.post("/me/certificates")
+async def create_certificate(payload: CertificateIn, user: dict = Depends(require_role("provider"))):
+    company = await db.companies.find_one({"owner_id": user["id"]})
+    doc = {"id": new_id(), "company_id": company["id"], "status": "active", **payload.dict()}
+    await db.certificates.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+
+@api_router.delete("/me/certificates/{cid}")
+async def delete_certificate(cid: str, user: dict = Depends(require_role("provider"))):
+    company = await db.companies.find_one({"owner_id": user["id"]})
+    await db.certificates.delete_one({"id": cid, "company_id": company["id"]})
+    return {"ok": True}
+
+
+# ------- Awards -------
+class AwardIn(BaseModel):
+    name: str
+    organization: str
+    year: int
+    description: Optional[str] = ""
+
+
+@api_router.get("/me/awards")
+async def my_awards(user: dict = Depends(require_role("provider"))):
+    company = await db.companies.find_one({"owner_id": user["id"]})
+    if not company:
+        return []
+    return await db.awards.find({"company_id": company["id"]}, {"_id": 0}).sort("year", -1).to_list(200)
+
+
+@api_router.post("/me/awards")
+async def create_award(payload: AwardIn, user: dict = Depends(require_role("provider"))):
+    company = await db.companies.find_one({"owner_id": user["id"]})
+    doc = {"id": new_id(), "company_id": company["id"], **payload.dict()}
+    await db.awards.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+
+@api_router.delete("/me/awards/{aid}")
+async def delete_award(aid: str, user: dict = Depends(require_role("provider"))):
+    company = await db.companies.find_one({"owner_id": user["id"]})
+    await db.awards.delete_one({"id": aid, "company_id": company["id"]})
+    return {"ok": True}
+
+
+# ------- Provider Reviews -------
+@api_router.get("/me/reviews")
+async def my_reviews(user: dict = Depends(require_role("provider"))):
+    company = await db.companies.find_one({"owner_id": user["id"]})
+    if not company:
+        return []
+    return await db.reviews.find({"company_id": company["id"]}, {"_id": 0}).sort("created_at", -1).to_list(500)
+
+
+
+
 # ------- Briefs / RFQs -------
 class BriefIn(BaseModel):
     title: str

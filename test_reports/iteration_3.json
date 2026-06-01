@@ -1,0 +1,44 @@
+{
+  "summary": "Iteration-3 backend re-test after E1 implemented Case Studies, Team, Certificates, Awards, Provider Reviews, plus GET/PUT for individual service & portfolio entries. 19/20 new-feature tests pass and full regression suite is 35/35. ONE explicit review-request item still NOT implemented: the CompanyUpdate Pydantic model was NOT expanded with the new fields (short_description, whatsapp, address, maps_url, branches, service_countries, tax_number, statistics, sections). PUT /api/me/company silently drops them.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "PUT /api/me/company", "issue": "CompanyUpdate model (server.py:315-330) NOT expanded. Missing optional fields: short_description, whatsapp, address, maps_url, branches, service_countries, tax_number, statistics, sections. Server returns 200 but Pydantic silently discards unknown attributes — verified by GET roundtrip showing none of the 9 new fields persisted on the company doc. This blocks the Section Visibility, Statistics, multi-branch and contact features required by the review_request.", "priority": "CRITICAL"}
+    ],
+    "minor": [
+      {"endpoint": "POST /me/case-studies", "issue": "Returns 200 on PUT update but body is {'ok': True}; does not return updated doc. Consumers must re-GET. Same pattern in /me/team PUT, /me/company PUT. Minor consistency issue."},
+      {"endpoint": "POST /me/case-studies / /me/team / /me/awards / /me/certificates", "issue": "No 404 guard when provider has no company yet — code does `company['id']` which would NoneType-crash if owner has no company doc. Demo provider always has company so masked in tests. Add 404 guard for safety."},
+      {"endpoint": "Pre-existing minors from iteration_1 still open", "issue": "Auth cookie-vs-Bearer precedence, CORS allow_origins=['*'] with credentials, no password complexity, no brute-force lockout. Not re-tested."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_new_features.py",
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/iteration_3_new_features.xml",
+    "/app/test_reports/pytest/iteration_3_regression.xml"
+  ],
+  "action_items": [
+    "Expand CompanyUpdate Pydantic model in /app/backend/server.py (lines 315-330) to add 9 optional fields: short_description: Optional[str], whatsapp: Optional[str], address: Optional[str], maps_url: Optional[str], branches: Optional[List[dict]], service_countries: Optional[List[str]], tax_number: Optional[str], statistics: Optional[dict], sections: Optional[dict]. After change, GET /api/me/company should return these fields once set.",
+    "Optional: add 404 guard `if not company: raise HTTPException(404, 'Company not found')` to all /me/case-studies, /me/team, /me/awards, /me/certificates write handlers (currently relies on `company['id']` and would crash if provider has no company)."
+  ],
+  "critical_code_review_comments": [
+    "server.py is now 1158 lines (was 950) — splitting into modular routers (provider_router, public_router, admin_router) is now urgent for maintainability.",
+    "PUT handlers for case_studies/team return {'ok': True} instead of the updated document — inconsistent with POST which returns the doc. Frontend will need extra GET round-trips.",
+    "Provider write handlers don't validate that `company` exists before doing `company['id']` — will NoneType crash for a provider with no company. Add guard.",
+    "CompanyUpdate.profile_completion weighting (server.py:349) does not factor in the new fields once added — consider extending weights for logo/cover/about etc."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_new_features.py (aligned payload field names with server schemas: case-studies `results`/`industry`, awards `name`/`organization`)"
+  ],
+  "success_rate": {
+    "backend_new_features": "95% (19/20 pass — only CompanyUpdate new fields failing)",
+    "backend_regression": "100% (35/35)",
+    "frontend": "not tested (skip frontend per request)"
+  },
+  "test_credentials": "Loaded from /app/memory/test_credentials.md — provider@bizmarket.az/Provider123!, buyer@bizmarket.az/Buyer123!, admin@bizmarket.az/Admin123!",
+  "seed_data_creation": "Tests create TEST_-prefixed docs (services, portfolio, case studies, team members, certificates, awards) and clean up on success path via DELETE. No orphans remain.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All Case Studies / Team / Certificates / Awards / Reviews CRUD endpoints are now wired and behave correctly including RBAC (buyer/admin = 403). The single remaining gap is the CompanyUpdate model — once E1 adds the 9 fields, re-run `pytest /app/backend/tests/ -v` and expect 55/55. Schemas to use in tests: CaseStudy -> {title, client_name, industry, challenge, solution, results}; Award -> {name, organization, year}; Team -> {name, role, bio, photo_url}; Certificate -> {name, issuer, image_url}.",
+  "rca_of_the_issue": "Reproduction: `curl -X PUT $API/me/company -H 'Authorization: Bearer $T' -d '{\"statistics\":{\"projects\":10}}'` returns 200, then `curl $API/me/company` shows no `statistics` field. Root cause: CompanyUpdate BaseModel at server.py:315-330 only declares 14 legacy fields; Pydantic's default behavior is to discard unknown attributes silently. Fix: add the 9 Optional[...] field declarations. No DB schema change needed since company is a free-form Mongo doc."
+}

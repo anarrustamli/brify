@@ -114,7 +114,7 @@ class TestCaseStudiesCRUD:
         assert isinstance(r0.json(), list)
         # POST create
         payload = {"title": "TEST Case Study", "client_name": "TEST Client",
-                   "summary": "summary", "challenge": "ch", "solution": "sol", "result": "res"}
+                   "industry": "IT", "challenge": "ch", "solution": "sol", "results": "res"}
         c = requests.post(f"{API}/me/case-studies", json=payload, headers=H(provider_token))
         assert c.status_code == 200, f"POST /me/case-studies missing: {c.status_code} {c.text}"
         cid = c.json().get("id")
@@ -184,7 +184,7 @@ class TestAwardsCRUD:
         r0 = requests.get(f"{API}/me/awards", headers=H(provider_token))
         assert r0.status_code == 200, f"GET /me/awards missing: {r0.status_code}"
         assert isinstance(r0.json(), list)
-        payload = {"title": "TEST Award", "issuer": "Awards Inc", "year": 2024}
+        payload = {"name": "TEST Award", "organization": "Awards Inc", "year": 2024}
         c = requests.post(f"{API}/me/awards", json=payload, headers=H(provider_token))
         assert c.status_code == 200, f"POST /me/awards missing: {c.status_code} {c.text}"
         aid = c.json().get("id")
