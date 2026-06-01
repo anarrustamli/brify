@@ -1,0 +1,159 @@
+{
+  "theme_and_archetype": {
+    "domain": "B2B Services Marketplace",
+    "theme": "LIGHT",
+    "archetype": "4 (Swiss & High-Contrast) + Soft Utility",
+    "description": "Premium, modern, and clean B2B SaaS marketplace. Combines enterprise authority (Archetype 4) with the approachable, frictionless experience of modern dashboards (Soft Utility). Focuses on trust, clarity, and scalability.",
+    "emotional_tone": "Trustworthy, Professional, Efficient, Premium"
+  },
+  "typography": {
+    "strategy": "The 'Old Money Tech' variant for premium SaaS. Clean, readable, and authoritative.",
+    "headings": {
+      "font_family": "Outfit, sans-serif",
+      "weights": ["font-medium", "font-semibold", "font-bold"],
+      "styling": "tracking-tight for large headings. DO NOT use Inter for headings.",
+      "scale": {
+        "h1": "text-4xl sm:text-5xl lg:text-6xl tracking-tight leading-none",
+        "h2": "text-2xl sm:text-3xl lg:text-4xl tracking-tight leading-tight",
+        "h3": "text-xl sm:text-2xl font-semibold",
+        "h4": "text-lg sm:text-xl font-medium"
+      }
+    },
+    "body": {
+      "font_family": "Manrope, sans-serif",
+      "weights": ["font-normal", "font-medium"],
+      "styling": "leading-relaxed",
+      "scale": {
+        "large": "text-lg",
+        "default": "text-base",
+        "small": "text-sm text-slate-500",
+        "micro": "text-xs uppercase tracking-[0.2em] font-semibold"
+      }
+    }
+  },
+  "color_palette": {
+    "backgrounds": {
+      "app": "bg-slate-50",
+      "card": "bg-white",
+      "accent_surface": "bg-blue-50"
+    },
+    "text": {
+      "primary": "text-slate-900",
+      "secondary": "text-slate-600",
+      "tertiary": "text-slate-400",
+      "inverse": "text-white"
+    },
+    "brand_accents": {
+      "primary": "bg-blue-600 hover:bg-blue-700 text-white",
+      "secondary": "bg-slate-100 hover:bg-slate-200 text-slate-900",
+      "sponsored": "bg-amber-100 text-amber-800 border-amber-200"
+    },
+    "borders": {
+      "default": "border-slate-200",
+      "focus": "focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+    }
+  },
+  "surfaces_and_shadows": {
+    "cards": "bg-white border border-slate-200 rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.03)]",
+    "buttons": "rounded-lg transition-all duration-200",
+    "inputs": "bg-white border border-slate-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-600",
+    "modals": "bg-white rounded-2xl shadow-2xl border border-slate-100 backdrop-blur-xl",
+    "headers": "bg-white/80 backdrop-blur-xl border-b border-slate-200 z-50 sticky top-0"
+  },
+  "spacing_and_layout": {
+    "marketing_pages": {
+      "padding": "py-20 md:py-32",
+      "container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+      "grid": "grid grid-cols-1 md:grid-cols-12 gap-8"
+    },
+    "dashboards": {
+      "padding": "p-6 md:p-8",
+      "sidebar_width": "w-64",
+      "grid_pattern": "Bento Grid (Control Room). grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6",
+      "cards": "p-6 rounded-xl flex flex-col h-full"
+    },
+    "marketplace_listings": {
+      "sidebar_filters": "w-full md:w-1/4 pr-0 md:pr-8",
+      "content_area": "w-full md:w-3/4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+    }
+  },
+  "components_strategy": {
+    "libraries": [
+      "@phosphor-icons/react (for premium dashboard icons)",
+      "lucide-react (fallback)",
+      "framer-motion (for micro-interactions and tab transitions)",
+      "recharts (for dashboard analytics)"
+    ],
+    "shadcn_customization": {
+      "Tabs": "Customized with pill-shaped indicators, no rigid borders.",
+      "Cards": "Soft rounded-xl, subtle 3% opacity shadow, minimal borders.",
+      "Inputs": "Height 44px (h-11) for better click targets, rounded-lg.",
+      "Badges": "Soft backgrounds (e.g., bg-blue-50 text-blue-700), rounded-full px-3 py-1."
+    },
+    "navigation": {
+      "type": "Top sticky nav for public marketplace. Sidebar nav for Buyer/Provider/Admin dashboards."
+    }
+  },
+  "media_and_images": {
+    "rules": "ONLY use the provided URLs below. DO NOT use generic placeholders.",
+    "urls": {
+      "hero_backgrounds": [
+        {
+          "url": "https://static.prod-images.emergentagent.com/jobs/454a6cdb-1654-4959-b7ee-ef1a2ed37ab0/images/f829db2f217e8b6f4a0bdc46c476eec4d2dbf35e508ea225a77cab3bd1b8f4b1.png",
+          "description": "Abstract 3D geometric shapes in deep navy and vibrant blue. Use as a subtle overlay or hero background image behind the main search bar."
+        },
+        {
+          "url": "https://images.pexels.com/photos/7293756/pexels-photo-7293756.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+          "description": "Blue textured tech background for CTA banners."
+        }
+      ],
+      "company_and_sponsor_logos": [
+        {
+          "url": "https://static.prod-images.emergentagent.com/jobs/454a6cdb-1654-4959-b7ee-ef1a2ed37ab0/images/f6e480e322d4ece07c5214af134aa3cf8b33a32e0782c01061d470f14d469587.png",
+          "description": "Set of abstract minimal tech company logos. Use crop/masking to show individual logos in the 'Trusted By' section or as Provider avatars."
+        }
+      ],
+      "team_and_office": [
+        {
+          "url": "https://images.pexels.com/photos/12903168/pexels-photo-12903168.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+          "description": "Professional team collaborating. Use for provider public profiles or 'About Us' sections."
+        },
+        {
+          "url": "https://images.unsplash.com/photo-1739298061707-cefee19941b7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzh8MHwxfHNlYXJjaHw0fHxjb3Jwb3JhdGUlMjBvZmZpY2UlMjB0ZWFtJTIwbWVldGluZ3xlbnwwfHx8fDE3ODAzNDQxMDB8MA&ixlib=rb-4.1.0&q=85",
+          "description": "Corporate office team meeting. Use for category landing pages or blog thumbnails."
+        }
+      ],
+      "mockups": [
+        {
+          "url": "https://static.prod-images.emergentagent.com/jobs/454a6cdb-1654-4959-b7ee-ef1a2ed37ab0/images/db14f11bae2f4ed302860bbc998cf6897ad0f95ceab58881a75dd6a543340efd.png",
+          "description": "Modern software dashboard mockup. Use in the 'How it works' or features section."
+        }
+      ]
+    }
+  },
+  "platform_specifics": {
+    "language": "Azerbaijani (Primary). Build UI with AZN terminology where applicable, or provide i18n structure. Example: 'Xidmətlər' (Services), 'Şirkətlər' (Companies), 'Axtar' (Search).",
+    "currency": "AZN (Azerbaijani Manat). Format: 1,500 AZN.",
+    "roles": ["Logged-out Visitor", "Buyer", "Provider", "Admin"],
+    "key_views": [
+      "Homepage: Hero search with Tabs (Services/Companies), Featured Providers Carousel, Trust Logos.",
+      "Marketplace Search: Rich sidebar filters (Location, Budget, Rating, Delivery Time). Service/Company Cards with Sponsored Badges.",
+      "Public Profile: Cover image, Logo, About, Services, Portfolio, Reviews, Certificates.",
+      "Buyer Dashboard: Sidebar nav. Active Briefs, Proposals, Shortlist, Messages.",
+      "Provider Dashboard: Sidebar nav. Profile Views, Leads, Active Proposals, Plan Details.",
+      "Admin Panel: Moderation, Users, Categories, Ads, Settings.",
+      "Briefs/RFQs: Multi-step form for creating requests.",
+      "Pricing: Free/Pro/Premium/Enterprise comparison table."
+    ]
+  },
+  "testing_and_accessibility": {
+    "testing_attributes": "All interactive elements MUST include a `data-testid` attribute using kebab-case role-based naming (e.g., `data-testid=\"search-submit-button\"`, `data-testid=\"provider-card-link\"`).",
+    "accessibility": "Ensure contrast ratios > 4.5:1. Focus states must use `focus:ring-2 focus:ring-blue-500`."
+  },
+  "instructions_to_main_agent": {
+    "tech_stack": "React.js (use .js/.jsx, NOT .tsx), Tailwind CSS, Shadcn UI.",
+    "file_extensions": "Create components as .jsx or .js files. Do NOT use TypeScript (.tsx).",
+    "execution_order": "1. Setup Routing & Layouts. 2. Build Shared UI Components (Cards, Buttons, Inputs). 3. Build Public Marketplace Pages. 4. Build Role-based Dashboards (Buyer, Provider, Admin).",
+    "design_fidelity": "Do not build raw HTML tables for dashboards; use custom card-based layouts or beautifully styled Tailwind tables with subtle borders. Follow the Bento Grid pattern for dashboard widgets."
+  }
+}
