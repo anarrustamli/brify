@@ -35,6 +35,7 @@ import ResetPassword from "@/pages/auth/ResetPassword";
 import BuyerDashboard from "@/pages/buyer/Dashboard";
 import BuyerShortlist from "@/pages/buyer/Shortlist";
 import BuyerCompare from "@/pages/buyer/Compare";
+import BuyerSavedComparisons from "@/pages/buyer/SavedComparisons";
 import BuyerCreateBrief from "@/pages/buyer/CreateBrief";
 import BuyerMyBriefs from "@/pages/buyer/MyBriefs";
 import BuyerBriefDetail from "@/pages/buyer/BriefDetail";
@@ -148,6 +149,7 @@ function App() {
               <Route path="/buyer/service/:id" element={<ServiceDetail buyerMode />} />
               <Route path="/buyer/portfolio/:id" element={<PortfolioDetail buyerMode />} />
               <Route path="/buyer/shortlist" element={<BuyerShortlist />} />
+              <Route path="/buyer/compare/saved" element={<BuyerSavedComparisons />} />
               <Route path="/buyer/compare" element={<BuyerCompare />} />
               <Route path="/buyer/briefs/new" element={<BuyerCreateBrief />} />
               <Route path="/buyer/briefs" element={<BuyerMyBriefs />} />

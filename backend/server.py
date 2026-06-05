@@ -844,7 +844,7 @@ async def list_services(
     min_price: Optional[float] = None, max_price: Optional[float] = None,
     sponsored: Optional[bool] = None,
     verified: Optional[bool] = None, legal_type: Optional[str] = None, vat_payer: Optional[bool] = None,
-    location: Optional[str] = None, timeline: Optional[str] = None,
+    location: Optional[str] = None, timeline: Optional[str] = None, company_id: Optional[str] = None,
     sort: Optional[str] = "sponsored", page: int = 1, limit: int = 12,
 ):
     query = {"status": "active"}
@@ -860,6 +860,9 @@ async def list_services(
         query["price_min"] = {"$lte": max_price}
     if timeline:
         query["timeline"] = {"$regex": timeline, "$options": "i"}
+    if company_id:
+        company_ids_filter = _parse_id_list(company_id)
+        query["company_id"] = {"$in": company_ids_filter} if len(company_ids_filter) > 1 else company_id
     company_query = {"status": "active"}
     if verified is not None:
         company_query["verified"] = verified
@@ -873,7 +876,12 @@ async def list_services(
         company_ids = [c["id"] for c in await db.companies.find(company_query, {"_id": 0, "id": 1}).to_list(1000)]
         if not company_ids:
             return {"items": [], "total": 0, "page": page, "limit": limit}
-        query["company_id"] = {"$in": company_ids}
+        if company_id:
+            allowed = set(company_ids)
+            selected = _parse_id_list(company_id)
+            query["company_id"] = {"$in": [cid for cid in selected if cid in allowed]}
+        else:
+            query["company_id"] = {"$in": company_ids}
     sort_map = {
         "rating": [("company_rating", -1)],
         "newest": [("created_at", -1)],
@@ -1634,6 +1642,134 @@ async def get_shortlist(user: dict = Depends(require_role("buyer"))):
 
 
 # ------- Compare snapshots -------
+COMPARE_TYPES = {"company", "service", "portfolio"}
+
+
+def _parse_id_list(value: Optional[str]) -> List[str]:
+    if not value:
+        return []
+    seen = set()
+    out = []
+    for item in str(value).split(","):
+        clean = item.strip()
+        if clean and clean not in seen:
+            seen.add(clean)
+            out.append(clean)
+    return out
+
+
+def _normalize_id_list(values: Optional[List[str]]) -> List[str]:
+    seen = set()
+    out = []
+    for value in values or []:
+        clean = str(value).strip()
+        if clean and clean not in seen:
+            seen.add(clean)
+            out.append(clean)
+    return out
+
+
+def _snapshot_key(values: List[str]) -> str:
+    return ",".join(sorted(values))
+
+
+def _company_summary(company: dict) -> dict:
+    return {
+        "id": company.get("id"),
+        "slug": company.get("slug"),
+        "name": company.get("name"),
+        "logo_url": company.get("logo_url"),
+        "slogan": company.get("slogan") or company.get("short_description"),
+        "short_description": company.get("short_description"),
+        "location": company.get("location"),
+        "industries": company.get("industries") or [],
+        "categories": company.get("categories") or [],
+        "legal_type": company.get("legal_type"),
+        "vat_payer": company.get("vat_payer", False),
+        "company_size": company.get("company_size"),
+        "verified": company.get("verified", False),
+        "rating": company.get("rating", 0),
+        "review_count": company.get("review_count", 0),
+        "response_time": company.get("response_time"),
+        "plan": company.get("plan"),
+    }
+
+
+async def _portfolio_compare_query(company_ids: List[str]):
+    return {
+        "company_id": {"$in": company_ids},
+        "visibility": {"$ne": "private"},
+        "deleted_at": {"$exists": False},
+        "$or": [{"status": {"$exists": False}}, {"status": {"$in": ["active", "approved", "published"]}}],
+    }
+
+
+@api_router.get("/compare/context")
+async def compare_context(type: str = "company", ids: str = ""):
+    compare_type = type or "company"
+    selected_ids = _parse_id_list(ids)
+    if compare_type not in COMPARE_TYPES:
+        raise HTTPException(400, "Invalid compare type")
+    if not selected_ids:
+        return {"companies": [], "servicesByCompany": {}, "portfolioByCompany": {}, "selected": {"type": compare_type, "ids": []}}
+
+    selected_services = []
+    selected_portfolio = []
+    if compare_type == "company":
+        company_ids = selected_ids
+    elif compare_type == "service":
+        selected_services = await db.services.find({"id": {"$in": selected_ids}, "status": "active"}, {"_id": 0}).to_list(100)
+        company_ids = _normalize_id_list([item.get("company_id") for item in selected_services])
+    else:
+        selected_portfolio = await db.portfolio.find({
+            "id": {"$in": selected_ids},
+            "visibility": {"$ne": "private"},
+            "deleted_at": {"$exists": False},
+            "$or": [{"status": {"$exists": False}}, {"status": {"$in": ["active", "approved", "published"]}}],
+        }, {"_id": 0}).to_list(100)
+        company_ids = _normalize_id_list([item.get("company_id") for item in selected_portfolio])
+
+    if not company_ids:
+        return {"companies": [], "servicesByCompany": {}, "portfolioByCompany": {}, "selected": {"type": compare_type, "ids": selected_ids}}
+
+    companies_raw = await db.companies.find({
+        "id": {"$in": company_ids},
+        "status": "active",
+        "deleted_at": {"$exists": False},
+    }, {"_id": 0}).to_list(100)
+    companies_by_id = {company["id"]: _company_summary(company) for company in companies_raw}
+    ordered_company_ids = [cid for cid in company_ids if cid in companies_by_id]
+    companies = [companies_by_id[cid] for cid in ordered_company_ids]
+
+    services = await db.services.find({"company_id": {"$in": ordered_company_ids}, "status": "active"}, {"_id": 0}).sort([("sponsored", -1), ("featured", -1), ("created_at", -1)]).to_list(500)
+    selected_service_ids = set(selected_ids if compare_type == "service" else [])
+    services_by_company = {cid: [] for cid in ordered_company_ids}
+    for service in services:
+        service["selected"] = service.get("id") in selected_service_ids
+        services_by_company.setdefault(service.get("company_id"), []).append(service)
+
+    portfolio = await db.portfolio.find(await _portfolio_compare_query(ordered_company_ids), {"_id": 0}).sort("created_at", -1).to_list(500)
+    selected_portfolio_ids = set(selected_ids if compare_type == "portfolio" else [])
+    portfolio_by_company = {cid: [] for cid in ordered_company_ids}
+    for item in portfolio:
+        item["selected"] = item.get("id") in selected_portfolio_ids
+        item["company"] = companies_by_id.get(item.get("company_id"))
+        portfolio_by_company.setdefault(item.get("company_id"), []).append(item)
+
+    return {
+        "companies": companies,
+        "servicesByCompany": services_by_company,
+        "portfolioByCompany": portfolio_by_company,
+        "selected": {
+            "type": compare_type,
+            "ids": selected_ids,
+            "company_ids": ordered_company_ids,
+            "service_ids": [item.get("id") for item in selected_services],
+            "portfolio_ids": [item.get("id") for item in selected_portfolio],
+        },
+    }
+
+
 class CompareSnapshotIn(BaseModel):
     title: str
     company_ids: Optional[List[str]] = []
@@ -1641,11 +1777,24 @@ class CompareSnapshotIn(BaseModel):
     item_type: Optional[str] = "company"
     item_ids: Optional[List[str]] = []
     items: Optional[List[dict]] = []
+    context: Optional[dict] = {}
+
+
+class CompareSnapshotUpdate(BaseModel):
+    title: Optional[str] = None
 
 
 @api_router.get("/me/compare-snapshots")
 async def my_compare_snapshots(user: dict = Depends(require_role("buyer"))):
-    return await db.compare_snapshots.find({"user_id": user["id"], "deleted_at": {"$exists": False}}, {"_id": 0}).sort("created_at", -1).to_list(50)
+    return await db.compare_snapshots.find({"user_id": user["id"], "deleted_at": {"$exists": False}}, {"_id": 0}).sort("updated_at", -1).to_list(50)
+
+
+@api_router.get("/me/compare-snapshots/{sid}")
+async def get_compare_snapshot(sid: str, user: dict = Depends(require_role("buyer"))):
+    doc = await db.compare_snapshots.find_one({"id": sid, "user_id": user["id"], "deleted_at": {"$exists": False}}, {"_id": 0})
+    if not doc:
+        raise HTTPException(404, "Compare snapshot not found")
+    return doc
 
 
 @api_router.post("/me/compare-snapshots")
@@ -1657,17 +1806,49 @@ async def create_compare_snapshot(payload: CompareSnapshotIn, user: dict = Depen
         data["items"] = data.get("items") or data.get("companies") or []
     elif data["item_type"] not in ("service", "portfolio"):
         raise HTTPException(400, "Invalid compare type")
+    data["item_ids"] = _normalize_id_list(data.get("item_ids"))
+    data["company_ids"] = _normalize_id_list(data.get("company_ids"))
     if not data.get("item_ids"):
         raise HTTPException(400, "Compare items required")
-    doc = {"id": new_id(), "user_id": user["id"], "created_at": now_iso(), **data}
+    item_key = _snapshot_key(data["item_ids"])
+    title = (data.get("title") or "").strip() or "Qarşılaşdırma"
+    existing = await db.compare_snapshots.find_one({
+        "user_id": user["id"],
+        "item_type": data["item_type"],
+        "item_key": item_key,
+        "deleted_at": {"$exists": False},
+    }, {"_id": 0})
+    update = {**data, "title": title, "item_key": item_key, "updated_at": now_iso()}
+    if existing:
+        await db.compare_snapshots.update_one({"id": existing["id"], "user_id": user["id"]}, {"$set": update})
+        doc = await db.compare_snapshots.find_one({"id": existing["id"], "user_id": user["id"]}, {"_id": 0})
+        return doc
+    doc = {"id": new_id(), "user_id": user["id"], "created_at": now_iso(), **update}
     await db.compare_snapshots.insert_one(doc)
     doc.pop("_id", None)
     return doc
 
 
+@api_router.put("/me/compare-snapshots/{sid}")
+async def update_compare_snapshot(sid: str, payload: CompareSnapshotUpdate, user: dict = Depends(require_role("buyer"))):
+    title = (payload.title or "").strip()
+    if not title:
+        raise HTTPException(400, "Title required")
+    result = await db.compare_snapshots.update_one(
+        {"id": sid, "user_id": user["id"], "deleted_at": {"$exists": False}},
+        {"$set": {"title": title, "updated_at": now_iso()}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(404, "Compare snapshot not found")
+    doc = await db.compare_snapshots.find_one({"id": sid, "user_id": user["id"]}, {"_id": 0})
+    return doc
+
+
 @api_router.delete("/me/compare-snapshots/{sid}")
 async def delete_compare_snapshot(sid: str, user: dict = Depends(require_role("buyer"))):
-    await db.compare_snapshots.update_one({"id": sid, "user_id": user["id"]}, {"$set": {"deleted_at": now_iso()}})
+    result = await db.compare_snapshots.update_one({"id": sid, "user_id": user["id"], "deleted_at": {"$exists": False}}, {"$set": {"deleted_at": now_iso(), "updated_at": now_iso()}})
+    if result.matched_count == 0:
+        raise HTTPException(404, "Compare snapshot not found")
     return {"ok": True}
 
 
