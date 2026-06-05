@@ -32,7 +32,7 @@ export default function Pricing() {
               <Link to="/register/provider">{p.price === 0 ? "Pulsuz başla" : "Plan seç"}</Link>
             </Button>
             <ul className="mt-6 space-y-3">
-              {(p.features || []).map((f, i) => (
+              {planFeatures(p).map((f, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm">
                   <Check className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
                   <span className="text-slate-700">{f}</span>
@@ -66,4 +66,15 @@ export default function Pricing() {
       </div>
     </div>
   );
+}
+
+function planFeatures(plan) {
+  if (Array.isArray(plan.feature_list)) return plan.feature_list;
+  if (Array.isArray(plan.features)) return plan.features;
+  if (plan.features && typeof plan.features === "object") {
+    return Object.entries(plan.features)
+      .filter(([, enabled]) => Boolean(enabled))
+      .map(([key]) => key.replaceAll("_", " "));
+  }
+  return [];
 }
