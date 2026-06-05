@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import api from "@/lib/api";
+import { adminListItems } from "@/lib/adminData";
 import { PageHeader, StatusBadge } from "@/components/shared/Common";
 import { timeAgo } from "@/lib/format";
 
 export default function Leads() {
   const [items, setItems] = useState([]);
-  useEffect(() => { api.get("/admin/leads").then((r) => setItems(r.data)); }, []);
+  useEffect(() => { api.get("/admin/leads").then((r) => setItems(adminListItems(r.data))); }, []);
   return (
     <div>
       <PageHeader title="Lead-lər" description={`${items.length} lead`} />

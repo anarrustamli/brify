@@ -1,6 +1,7 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
-export function StatCard({ icon: Icon, label, value, change, accent = "blue", testId }) {
+export function StatCard({ icon: Icon, label, value, change, accent = "blue", testId, to, description }) {
   const accentMap = {
     blue: "bg-blue-50 text-blue-600",
     emerald: "bg-emerald-50 text-emerald-600",
@@ -8,8 +9,8 @@ export function StatCard({ icon: Icon, label, value, change, accent = "blue", te
     rose: "bg-rose-50 text-rose-600",
     indigo: "bg-indigo-50 text-indigo-600",
   };
-  return (
-    <div data-testid={testId} className="bg-white border border-slate-200 rounded-xl p-5 hover:shadow-[0_4px_20px_rgba(15,23,42,0.06)] transition-shadow">
+  const content = (
+    <>
       <div className="flex items-start justify-between">
         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${accentMap[accent]}`}>
           {Icon && <Icon className="w-5 h-5" />}
@@ -22,6 +23,14 @@ export function StatCard({ icon: Icon, label, value, change, accent = "blue", te
       </div>
       <div className="mt-3 text-2xl font-bold tracking-tight text-slate-900">{value}</div>
       <div className="text-sm text-slate-500 mt-0.5">{label}</div>
+      {description && <div className="text-xs text-slate-400 mt-2">{description}</div>}
+    </>
+  );
+  const cls = "block bg-white border border-slate-200 rounded-xl p-5 hover:border-blue-200 hover:shadow-[0_4px_20px_rgba(15,23,42,0.06)] transition-all";
+  if (to) return <Link to={to} data-testid={testId} className={cls}>{content}</Link>;
+  return (
+    <div data-testid={testId} className={cls}>
+      {content}
     </div>
   );
 }

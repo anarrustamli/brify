@@ -1,9 +1,12 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Building2, TrendingUp, Shield, Users } from "lucide-react";
+import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 
 export default function ProviderLanding() {
+  const [content, setContent] = useState(null);
+  useEffect(() => { api.get("/content/provider-landing").then((r) => setContent(r.data)).catch(() => {}); }, []);
   return (
     <div>
       <section className="bg-gradient-to-br from-blue-50 via-white to-emerald-50 py-20">
@@ -11,10 +14,10 @@ export default function ProviderLanding() {
           <div>
             <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">PROVIDER ÜÇÜN</span>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 mt-4 leading-[1.05]">
-              Şirkətinizi B2B xidmət bazarında təqdim edin
+              {content?.title || "Şirkətinizi B2B xidmət bazarında təqdim edin"}
             </h1>
             <p className="text-lg text-slate-600 mt-6 leading-relaxed">
-              Hər ay 10,000+ alıcı ilə tanış olun, yüksək keyfiyyətli lead-lər alın və biznesinizi sürətlə böyüdün.
+              {content?.body || "Hər ay 10,000+ alıcı ilə tanış olun, yüksək keyfiyyətli lead-lər alın və biznesinizi sürətlə böyüdün."}
             </p>
             <div className="flex flex-wrap gap-3 mt-8">
               <Button asChild size="lg" className="bg-emerald-600 hover:bg-emerald-700">

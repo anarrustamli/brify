@@ -8,11 +8,21 @@ import { toast } from "sonner";
 export default function Billing() {
   const [plans, setPlans] = useState([]);
   const [company, setCompany] = useState(null);
+  const [billing, setBilling] = useState({ subscriptions: [], payments: [], invoices: [] });
 
   useEffect(() => {
     api.get("/plans").then((r) => setPlans(r.data));
     api.get("/me/company").then((r) => setCompany(r.data));
+    api.get("/me/billing").then((r) => setBilling(r.data)).catch(() => {});
   }, []);
+
+  const requestPlan = async (plan) => {
+    if (plan.slug === company?.plan) return;
+    await api.post("/me/subscription-requests", { plan: plan.slug, amount: plan.price || 0 });
+    const { data } = await api.get("/me/billing");
+    setBilling(data);
+    toast.success("Plan dəyişikliyi sorğusu adminə göndərildi");
+  };
 
   return (
     <div>
@@ -40,7 +50,13 @@ export default function Billing() {
                 <li key={i} className="flex gap-2"><Check className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" /><span className="text-slate-700">{f}</span></li>
               ))}
             </ul>
-            <Button className="w-full mt-5 bg-blue-600 hover:bg-blue-700" onClick={() => toast.success("Plan dəyişikliyi sorğusu göndərildi (demo)")}>{p.slug === company?.plan ? "Mövcud" : "Seç"}</Button>
+            <Button
+              className="w-full mt-5 bg-blue-600 hover:bg-blue-700"
+              disabled={p.slug === company?.plan}
+              onClick={() => requestPlan(p)}
+            >
+              {p.slug === company?.plan ? "Mövcud" : "Seç"}
+            </Button>
           </div>
         ))}
       </div>
@@ -52,12 +68,15 @@ export default function Billing() {
             <tr><th className="p-4 text-left">Tarix</th><th className="p-4 text-left">Açıqlama</th><th className="p-4 text-left">Məbləğ</th><th className="p-4 text-left">Status</th></tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {[
-              { d: "28 Yan 2026", x: "Pro plan - aylıq", a: "99 AZN" },
-              { d: "28 Dek 2025", x: "Pro plan - aylıq", a: "99 AZN" },
-              { d: "28 Noy 2025", x: "Pro plan - aylıq", a: "99 AZN" },
-            ].map((r, i) => (
-              <tr key={i}><td className="p-4">{r.d}</td><td className="p-4">{r.x}</td><td className="p-4 font-semibold">{r.a}</td><td className="p-4"><span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs">Ödənilib</span></td></tr>
+            {billing.payments.length === 0 && billing.subscriptions.length === 0 ? (
+              <tr><td className="p-5 text-slate-500" colSpan={4}>Hələ billing qeydi yoxdur</td></tr>
+            ) : [...billing.payments, ...billing.subscriptions].map((r) => (
+              <tr key={r.id}>
+                <td className="p-4">{r.created_at ? new Date(r.created_at).toLocaleDateString("az-AZ") : "—"}</td>
+                <td className="p-4">{r.description || `${r.plan || "Plan"} sorğusu`}</td>
+                <td className="p-4 font-semibold">{r.amount || 0} {r.currency || "AZN"}</td>
+                <td className="p-4"><span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs">{r.status || "requested"}</span></td>
+              </tr>
             ))}
           </tbody>
         </table>

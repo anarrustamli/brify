@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { PageHeader, StatCard } from "@/components/shared/Common";
-import { Building, Users, Inbox, ShieldCheck, DollarSign, FileText, Megaphone, AlertCircle } from "lucide-react";
+import { Building, Users, Inbox, ShieldCheck, DollarSign, FileText, Megaphone, AlertCircle, Boxes, Layers, Receipt } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 
 export default function AdminDashboard() {
@@ -14,29 +14,30 @@ export default function AdminDashboard() {
   ];
   const COLORS = ["#10b981", "#f59e0b"];
 
-  const bars = [
-    { m: "Yan", revenue: 8200 },
-    { m: "Fev", revenue: 9100 },
-    { m: "Mar", revenue: 10400 },
-    { m: "Apr", revenue: 11200 },
-    { m: "May", revenue: 12450 },
-  ];
+  const bars = stats.revenue_chart || [];
 
   return (
     <div>
       <PageHeader title="Admin Panel" description="Platforma statistikası və idarəetmə" />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Building} label="Provider şirkətləri" value={stats.providers || 0} accent="blue" change={5} />
-        <StatCard icon={Users} label="Buyer-lər" value={stats.buyers || 0} accent="indigo" change={12} />
-        <StatCard icon={Inbox} label="Lead-lər" value={stats.leads || 0} accent="emerald" change={18} />
-        <StatCard icon={DollarSign} label="Aylıq gəlir" value={`${stats.revenue_month || 0} AZN`} accent="amber" change={8} />
+        <StatCard to="/admin/companies" icon={Building} label="Provider şirkətləri" value={stats.providers || 0} accent="blue" change={5} description="Şirkətləri idarə et" />
+        <StatCard to="/admin/users" icon={Users} label="Buyer-lər" value={stats.buyers || 0} accent="indigo" change={12} description="İstifadəçilərə bax" />
+        <StatCard to="/admin/leads" icon={Inbox} label="Lead-lər" value={stats.leads || 0} accent="emerald" change={18} description="Lead axını" />
+        <StatCard to="/admin/plans" icon={DollarSign} label="Aylıq gəlir" value={`${stats.revenue_month || 0} AZN`} accent="amber" change={8} description="Plan və gəlir" />
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-        <StatCard icon={FileText} label="Brief-lər" value={stats.briefs || 0} accent="blue" />
-        <StatCard icon={ShieldCheck} label="Pending verification" value={stats.pending_verifications || 0} accent="amber" />
-        <StatCard icon={AlertCircle} label="Pending companies" value={stats.pending_companies || 0} accent="rose" />
-        <StatCard icon={Megaphone} label="Aktiv reklam" value={stats.ads_active || 0} accent="indigo" />
+        <StatCard to="/admin/briefs" icon={FileText} label="Brief-lər" value={stats.briefs || 0} accent="blue" description="Brief nəzarəti" />
+        <StatCard to="/admin/companies?status=pending" icon={ShieldCheck} label="Pending verification" value={stats.pending_verifications || 0} accent="amber" description="Yoxlama növbəsi" />
+        <StatCard to="/admin/companies?status=pending" icon={AlertCircle} label="Pending companies" value={stats.pending_companies || 0} accent="rose" description="Təsdiq gözləyir" />
+        <StatCard to="/admin/ads" icon={Megaphone} label="Aktiv reklam" value={stats.ads_active || 0} accent="indigo" description="Reklamları idarə et" />
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+        <StatCard to="/admin/services" icon={Boxes} label="Xidmətlər" value={stats.services || 0} accent="emerald" description="Xidmət kataloqu" />
+        <StatCard to="/admin/portfolio" icon={Layers} label="Portfolio" value={stats.portfolio || 0} accent="indigo" description="Portfolio nəzarəti" />
+        <StatCard to="/admin/proposals" icon={FileText} label="Təkliflər" value={stats.proposals || 0} accent="blue" description="Proposal axını" />
+        <StatCard to="/admin/payments" icon={Receipt} label="Ödənişlər" value={stats.payments || 0} accent="amber" description="Ledger qeydləri" />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6 mt-6">

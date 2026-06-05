@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import CategorySelector from "@/components/marketplace/CategorySelector";
+import { LEGAL_TYPES } from "@/lib/companyMeta";
 import { toast } from "sonner";
 
 const TABS = [
@@ -24,9 +26,13 @@ export default function CompanyProfileEdit() {
   const location = useLocation();
   const section = TABS.find((t) => t.to === location.pathname)?.section || "basic";
   const [form, setForm] = useState(null);
+  const [sectors, setSectors] = useState([]);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { api.get("/me/company").then((r) => setForm(r.data)); }, []);
+  useEffect(() => {
+    api.get("/me/company").then((r) => setForm(r.data));
+    api.get("/sectors").then((r) => setSectors(r.data || [])).catch(() => setSectors([]));
+  }, []);
   const update = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const updateSocial = (k, v) => setForm((f) => ({ ...f, social: { ...(f.social || {}), [k]: v } }));
 
@@ -79,6 +85,17 @@ export default function CompanyProfileEdit() {
               </div>
               <div><Label>Vergi nömrəsi</Label><Input value={form.tax_number || ""} onChange={(e) => update("tax_number", e.target.value)} className="h-11 mt-1" /></div>
               <div><Label>Dillər (vergüllə)</Label><Input value={(form.languages || []).join(", ")} onChange={(e) => update("languages", e.target.value.split(",").map(s => s.trim()).filter(Boolean))} placeholder="az, en, ru" className="h-11 mt-1" /></div>
+              <div>
+                <Label>Hüquqi forma</Label>
+                <Select value={form.legal_type || "llc"} onValueChange={(v) => update("legal_type", v)}>
+                  <SelectTrigger className="h-11 mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>{LEGAL_TYPES.map((type) => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <label className="flex items-center gap-2 pt-7 cursor-pointer">
+                <Checkbox checked={!!form.vat_payer} onCheckedChange={(v) => update("vat_payer", !!v)} />
+                <span className="text-sm font-medium text-slate-700">ƏDV ödəyicisi</span>
+              </label>
             </div>
             <div><Label>Logo URL</Label><Input value={form.logo_url || ""} onChange={(e) => update("logo_url", e.target.value)} placeholder="https://..." className="h-11 mt-1" /></div>
             <div><Label>Cover şəkil URL</Label><Input value={form.cover_url || ""} onChange={(e) => update("cover_url", e.target.value)} placeholder="https://..." className="h-11 mt-1" /></div>
@@ -89,7 +106,23 @@ export default function CompanyProfileEdit() {
             <h3 className="font-semibold text-slate-900 mb-2">Şirkət təsviri</h3>
             <div><Label>Qısa təsvir</Label><Textarea rows={2} value={form.short_description || ""} onChange={(e) => update("short_description", e.target.value)} placeholder="Bir-iki cümlə..." className="mt-1" /></div>
             <div><Label>Tam təsvir</Label><Textarea rows={6} value={form.about || ""} onChange={(e) => update("about", e.target.value)} className="mt-1" /></div>
-            <div><Label>Sahələr (vergüllə)</Label><Input value={(form.industries || []).join(", ")} onChange={(e) => update("industries", e.target.value.split(",").map(s => s.trim()).filter(Boolean))} className="h-11 mt-1" /></div>
+            <div>
+              <Label>Sektorlar</Label>
+              <div className="grid sm:grid-cols-2 gap-2 mt-2">
+                {sectors.map((sector) => {
+                  const checked = (form.industries || []).includes(sector.name);
+                  return (
+                    <label key={sector.id || sector.slug} className={`flex items-center gap-2 border rounded-lg px-3 py-2 cursor-pointer ${checked ? "border-blue-300 bg-blue-50" : "border-slate-200"}`}>
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => update("industries", v ? [...(form.industries || []), sector.name] : (form.industries || []).filter((s) => s !== sector.name))}
+                      />
+                      <span className="text-sm text-slate-700">{sector.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
             <div>
               <Label>Kateqoriyalar</Label>
               <p className="text-xs text-slate-500 mt-1 mb-2">Maksimum 3 əsas kateqoriya, hər birində 3 alt-kateqoriya seçə bilərsiniz.</p>

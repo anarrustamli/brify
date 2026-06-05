@@ -19,7 +19,7 @@ export default function Integrations() {
   const save = async (e) => {
     e.preventDefault();
     await api.put(`/admin/integrations/${editing.key}`, { name: editing.name, configured: true, masked_fields: { api_key: "•••" + (creds.api_key.slice(-4) || ""), api_secret: "•••" } });
-    toast.success("Saxlandı (mock)");
+    toast.success("İnteqrasiya saxlandı");
     setEditing(null);
     load();
   };

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "@/lib/api";
+import { adminListItems } from "@/lib/adminData";
 import { PageHeader, StatusBadge } from "@/components/shared/Common";
 import { Button } from "@/components/ui/button";
 import { Star } from "lucide-react";
@@ -7,7 +8,7 @@ import { toast } from "sonner";
 
 export default function Reviews() {
   const [reviews, setReviews] = useState([]);
-  const load = () => api.get("/admin/reviews").then((r) => setReviews(r.data));
+  const load = () => api.get("/admin/reviews").then((r) => setReviews(adminListItems(r.data)));
   useEffect(() => { load(); }, []);
 
   const decide = async (rid, status) => { await api.put(`/admin/reviews/${rid}`, { status }); toast.success("Yeniləndi"); load(); };

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PageHeader } from "@/components/shared/Common";
 import Breadcrumbs from "@/components/shared/Breadcrumbs";
 import { toast } from "sonner";
@@ -23,19 +23,19 @@ export default function ServiceForm() {
   const navigate = useNavigate();
   const [form, setForm] = useState(blank);
   const [categories, setCategories] = useState([]);
+  const [sectors, setSectors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [deliverablesInput, setDeliverablesInput] = useState("");
   const [techInput, setTechInput] = useState("");
-  const [industriesInput, setIndustriesInput] = useState("");
 
   useEffect(() => {
     api.get("/categories").then((r) => setCategories(r.data));
+    api.get("/sectors").then((r) => setSectors(r.data || [])).catch(() => setSectors([]));
     if (editing) {
       api.get(`/me/services/${id}`).then((r) => {
         setForm(r.data);
         setDeliverablesInput((r.data.deliverables || []).join(", "));
         setTechInput((r.data.technologies || []).join(", "));
-        setIndustriesInput((r.data.industries || []).join(", "));
       }).catch(() => toast.error("Xidmət tapılmadı"));
     }
   }, [id, editing]);
@@ -50,7 +50,6 @@ export default function ServiceForm() {
         ...form,
         deliverables: deliverablesInput.split(",").map((s) => s.trim()).filter(Boolean),
         technologies: techInput.split(",").map((s) => s.trim()).filter(Boolean),
-        industries: industriesInput.split(",").map((s) => s.trim()).filter(Boolean),
       };
       if (editing) {
         await api.put(`/me/services/${id}`, payload);
@@ -121,8 +120,21 @@ export default function ServiceForm() {
               <Input value={techInput} onChange={(e) => setTechInput(e.target.value)} placeholder="Google Analytics, Figma, ..." className="h-11 mt-1" />
             </div>
             <div>
-              <Label>Sahələr (vergüllə)</Label>
-              <Input value={industriesInput} onChange={(e) => setIndustriesInput(e.target.value)} placeholder="E-commerce, Fintech, ..." className="h-11 mt-1" />
+              <Label>Sektorlar</Label>
+              <div className="grid sm:grid-cols-2 gap-2 mt-2">
+                {sectors.map((sector) => {
+                  const checked = (form.industries || []).includes(sector.name);
+                  return (
+                    <label key={sector.id || sector.slug} className={`flex items-center gap-2 border rounded-lg px-3 py-2 cursor-pointer ${checked ? "border-blue-300 bg-blue-50" : "border-slate-200"}`}>
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => update("industries", v ? [...(form.industries || []), sector.name] : (form.industries || []).filter((s) => s !== sector.name))}
+                      />
+                      <span className="text-sm text-slate-700">{sector.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </section>

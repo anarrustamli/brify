@@ -16,14 +16,18 @@ const ICONS = ["Briefcase", "TrendingUp", "Search", "Share2", "Code", "Smartphon
 const COLORS = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"];
 
 const blank = { name: "", slug: "", icon: "Briefcase", color: "#3b82f6", parent_slug: "", description: "", order: 99, active: true, seo_title: "", seo_description: "" };
+const blankSector = { name: "", slug: "", description: "", order: 99, active: true };
 
 export default function Categories() {
   const [cats, setCats] = useState([]);
+  const [sectors, setSectors] = useState([]);
   const [editing, setEditing] = useState(null);
+  const [sectorEditing, setSectorEditing] = useState(blankSector);
   const [open, setOpen] = useState(false);
 
   const load = () => api.get("/categories").then((r) => setCats(r.data));
-  useEffect(() => { load(); }, []);
+  const loadSectors = () => api.get("/sectors?include_inactive=true").then((r) => setSectors(r.data || []));
+  useEffect(() => { load(); loadSectors(); }, []);
 
   const parents = cats.filter((c) => !c.parent_slug);
   const childrenOf = (slug) => cats.filter((c) => c.parent_slug === slug);
@@ -46,6 +50,25 @@ export default function Categories() {
     if (!window.confirm("Silmək istəyirsiniz?")) return;
     await api.delete(`/admin/categories/${id}`);
     load();
+  };
+
+  const saveSector = async (e) => {
+    e.preventDefault();
+    try {
+      if (sectorEditing.id) await api.put(`/admin/sectors/${sectorEditing.id}`, sectorEditing);
+      else await api.post("/admin/sectors", sectorEditing);
+      toast.success("Sektor yadda saxlandı");
+      setSectorEditing(blankSector);
+      loadSectors();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Xəta");
+    }
+  };
+
+  const removeSector = async (id) => {
+    if (!window.confirm("Sektoru silmək istəyirsiniz?")) return;
+    await api.delete(`/admin/sectors/${id}`);
+    loadSectors();
   };
 
   const Row = ({ c, isChild }) => {
@@ -138,6 +161,46 @@ export default function Categories() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="grid lg:grid-cols-[360px_1fr] gap-6 mt-8">
+        <form onSubmit={saveSector} className="bg-white border border-slate-200 rounded-xl p-5 space-y-3">
+          <h3 className="font-semibold text-slate-900">Sektorlar</h3>
+          <div><Label>Ad *</Label><Input required value={sectorEditing.name} onChange={(e) => {
+            const name = e.target.value;
+            setSectorEditing((s) => ({ ...s, name, slug: s.id ? s.slug : name.toLowerCase().replace(/\s+/g, "-") }));
+          }} className="h-11 mt-1" /></div>
+          <div><Label>Slug *</Label><Input required value={sectorEditing.slug} onChange={(e) => setSectorEditing({ ...sectorEditing, slug: e.target.value.toLowerCase().replace(/\s+/g, "-") })} className="h-11 mt-1 font-mono" /></div>
+          <div><Label>Təsvir</Label><Textarea rows={2} value={sectorEditing.description || ""} onChange={(e) => setSectorEditing({ ...sectorEditing, description: e.target.value })} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Sıra</Label><Input type="number" value={sectorEditing.order} onChange={(e) => setSectorEditing({ ...sectorEditing, order: Number(e.target.value) })} className="h-11 mt-1" /></div>
+            <div className="flex items-end gap-2"><Switch checked={sectorEditing.active} onCheckedChange={(v) => setSectorEditing({ ...sectorEditing, active: v })} /><span className="text-sm">Aktiv</span></div>
+          </div>
+          <div className="flex gap-2">
+            <Button type="submit" className="bg-blue-600 hover:bg-blue-700">{sectorEditing.id ? "Yenilə" : "Əlavə et"}</Button>
+            {sectorEditing.id && <Button type="button" variant="outline" onClick={() => setSectorEditing(blankSector)}>Ləğv et</Button>}
+          </div>
+        </form>
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500">
+              <tr><th className="p-3 text-left">Sektor</th><th className="p-3 text-left">Slug</th><th className="p-3 text-left">Status</th><th className="p-3 text-right"></th></tr>
+            </thead>
+            <tbody>
+              {sectors.map((s) => (
+                <tr key={s.id} className="hover:bg-slate-50 border-b border-slate-100">
+                  <td className="p-3 font-medium text-slate-900">{s.name}</td>
+                  <td className="p-3 text-slate-500 font-mono text-xs">{s.slug}</td>
+                  <td className="p-3 text-slate-500">{s.active ? "Aktiv" : "Deaktiv"}</td>
+                  <td className="p-3 text-right">
+                    <Button size="sm" variant="ghost" onClick={() => setSectorEditing({ ...blankSector, ...s })}><Edit className="w-4 h-4" /></Button>
+                    <Button size="sm" variant="ghost" onClick={() => removeSector(s.id)}><Trash2 className="w-4 h-4 text-rose-500" /></Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

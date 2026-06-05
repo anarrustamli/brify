@@ -339,8 +339,8 @@ class TestAdmin:
 
     def test_companies_list_and_actions(self, session, admin_token):
         r = session.get(f"{API}/admin/companies", headers=H(admin_token))
-        assert r.status_code == 200 and isinstance(r.json(), list)
-        cid = r.json()[0]["id"]
+        assert r.status_code == 200 and isinstance(r.json().get("items"), list)
+        cid = r.json()["items"][0]["id"]
         # status
         r1 = session.put(f"{API}/admin/companies/{cid}/status", json={"status": "active"}, headers=H(admin_token))
         assert r1.status_code == 200
@@ -355,7 +355,7 @@ class TestAdmin:
         for path in ("/admin/users", "/admin/reviews", "/admin/leads", "/admin/briefs"):
             r = session.get(f"{API}{path}", headers=H(admin_token))
             assert r.status_code == 200, f"{path} -> {r.status_code}"
-            assert isinstance(r.json(), list)
+            assert isinstance(r.json().get("items"), list)
 
     def test_ads_plans_settings_integrations_audit(self, session, admin_token):
         for path in ("/admin/ads", "/admin/plans", "/admin/integrations", "/admin/audit-logs"):

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import NotificationBell from "@/components/shared/NotificationBell";
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -17,6 +18,7 @@ export default function Header() {
   const nav = [
     { to: "/services", label: t("nav.services") },
     { to: "/companies", label: t("nav.companies") },
+    { to: "/portfolio", label: "Portfolio" },
     { to: "/pricing", label: t("nav.pricing") },
     { to: "/blog", label: t("nav.blog") },
     { to: "/about", label: t("nav.about") },
@@ -75,28 +77,31 @@ export default function Header() {
                 </Button>
               </>
             ) : (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" data-testid="user-menu" className="gap-2">
-                    <span className="w-7 h-7 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center">
-                      {user.name?.[0]?.toUpperCase() || "U"}
-                    </span>
-                    <span className="max-w-[100px] truncate">{user.name}</span>
-                    <ChevronDown className="w-3 h-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <div className="px-2 py-1.5 text-xs text-slate-500">{user.email}</div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate(dashPath)} data-testid="goto-dashboard">
-                    <LayoutDashboard className="w-4 h-4 mr-2" /> {t("nav.dashboard")}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={async () => { await logout(); navigate("/"); }} data-testid="logout-btn">
-                    <LogOut className="w-4 h-4 mr-2" /> {t("nav.logout")}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <>
+                <NotificationBell />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" data-testid="user-menu" className="gap-2">
+                      <span className="w-7 h-7 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center">
+                        {user.name?.[0]?.toUpperCase() || "U"}
+                      </span>
+                      <span className="max-w-[100px] truncate">{user.name}</span>
+                      <ChevronDown className="w-3 h-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <div className="px-2 py-1.5 text-xs text-slate-500">{user.email}</div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate(dashPath)} data-testid="goto-dashboard">
+                      <LayoutDashboard className="w-4 h-4 mr-2" /> {t("nav.dashboard")}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={async () => { await logout(); navigate("/"); }} data-testid="logout-btn">
+                      <LogOut className="w-4 h-4 mr-2" /> {t("nav.logout")}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
             )}
           </div>
 
@@ -120,6 +125,7 @@ export default function Header() {
                 </>
               ) : (
                 <>
+                  <NotificationBell compact />
                   <Button variant="outline" size="sm" asChild className="flex-1"><Link to={dashPath}>{t("nav.dashboard")}</Link></Button>
                   <Button size="sm" onClick={logout} variant="ghost">{t("nav.logout")}</Button>
                 </>

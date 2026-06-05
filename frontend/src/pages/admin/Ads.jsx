@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "@/lib/api";
+import { adminListItems } from "@/lib/adminData";
 import { PageHeader } from "@/components/shared/Common";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,7 @@ export default function Ads() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(blank);
 
-  const load = () => api.get("/admin/ads").then((r) => setAds(r.data));
+  const load = () => api.get("/admin/ads").then((r) => setAds(adminListItems(r.data)));
   useEffect(() => { load(); }, []);
 
   const save = async (e) => {

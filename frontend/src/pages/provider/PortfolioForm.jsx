@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/shared/Common";
 import Breadcrumbs from "@/components/shared/Breadcrumbs";
 import { toast } from "sonner";
@@ -21,9 +22,11 @@ export default function PortfolioForm() {
   const navigate = useNavigate();
   const [form, setForm] = useState(blank);
   const [galleryInput, setGalleryInput] = useState("");
+  const [sectors, setSectors] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    api.get("/sectors").then((r) => setSectors(r.data || [])).catch(() => setSectors([]));
     if (editing) {
       api.get(`/me/portfolio/${id}`).then((r) => {
         setForm(r.data);
@@ -70,7 +73,13 @@ export default function PortfolioForm() {
             <div><Label>Layihə adı *</Label><Input required value={form.title} onChange={(e) => update("title", e.target.value)} className="h-11 mt-1" data-testid="pf-title" /></div>
             <div className="grid sm:grid-cols-2 gap-4">
               <div><Label>Müştəri adı</Label><Input value={form.client_name || ""} onChange={(e) => update("client_name", e.target.value)} className="h-11 mt-1" data-testid="pf-client" /></div>
-              <div><Label>Sahə</Label><Input value={form.industry || ""} onChange={(e) => update("industry", e.target.value)} placeholder="Fintech, E-commerce..." className="h-11 mt-1" /></div>
+              <div>
+                <Label>Sektor</Label>
+                <Select value={form.industry || "none"} onValueChange={(v) => update("industry", v === "none" ? "" : v)}>
+                  <SelectTrigger className="h-11 mt-1"><SelectValue placeholder="Seçin" /></SelectTrigger>
+                  <SelectContent><SelectItem value="none">Seçilməyib</SelectItem>{sectors.map((s) => <SelectItem key={s.id || s.slug} value={s.name}>{s.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <div><Label>Xidmət növü</Label><Input value={form.service_type || ""} onChange={(e) => update("service_type", e.target.value)} className="h-11 mt-1" /></div>

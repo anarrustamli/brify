@@ -13,9 +13,11 @@ export default function Home() {
   const [categories, setCategories] = useState([]);
   const [featured, setFeatured] = useState([]);
   const [ads, setAds] = useState([]);
+  const [content, setContent] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
+    api.get("/content/home").then((r) => setContent(r.data)).catch(() => {});
     api.get("/categories").then((r) => setCategories(r.data.slice(0, 12)));
     api.get("/companies?sort=sponsored&limit=6").then((r) => setFeatured(r.data.items));
     api.get("/ads?placement=homepage-top").then((r) => setAds(r.data));
@@ -39,10 +41,10 @@ export default function Home() {
               <Sparkles className="w-3.5 h-3.5" /> Azərbaycanın B2B xidmət marketplace-i
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-slate-900 leading-[1.05] text-balance">
-              Bizneslər üçün <span className="text-blue-600">peşəkar xidmət şirkətləri</span> tap
+              {content?.title || <>Bizneslər üçün <span className="text-blue-600">peşəkar xidmət şirkətləri</span> tap</>}
             </h1>
             <p className="text-lg text-slate-600 mt-6 leading-relaxed max-w-2xl">
-              Düzgün agentliyi tapın, brief göndərin və saatlar içində təkliflər alın. Doğrulanmış 500+ şirkət, real rəylər və şəffaf qiymətləndirmə.
+              {content?.body || "Düzgün agentliyi tapın, brief göndərin və saatlar içində təkliflər alın. Doğrulanmış 500+ şirkət, real rəylər və şəffaf qiymətləndirmə."}
             </p>
           </div>
 
@@ -89,15 +91,15 @@ export default function Home() {
 
           {/* Trust stats */}
           <div className="mt-14 grid grid-cols-2 lg:grid-cols-4 gap-6 max-w-4xl">
-            {[
+            {(content?.stats || [
               { v: "500+", l: "Doğrulanmış şirkət" },
               { v: "20", l: "Xidmət kateqoriyası" },
               { v: "2,400+", l: "Tamamlanmış layihə" },
               { v: "4.8/5", l: "Orta müştəri reytinqi" },
-            ].map((s) => (
-              <div key={s.l}>
-                <div className="text-3xl font-bold tracking-tight text-slate-900">{s.v}</div>
-                <div className="text-sm text-slate-500 mt-1">{s.l}</div>
+            ]).map((s) => (
+              <div key={s.l || s.label}>
+                <div className="text-3xl font-bold tracking-tight text-slate-900">{s.v || s.value}</div>
+                <div className="text-sm text-slate-500 mt-1">{s.l || s.label}</div>
               </div>
             ))}
           </div>
@@ -156,7 +158,7 @@ export default function Home() {
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 mt-3">Necə işləyir?</h2>
               <div className="mt-8 space-y-6">
                 {[
-                  { i: Search, t: "Axtar və müqayisə et", d: "Filtrlərlə uyğun şirkətləri tapın, profilləri yoxlayın və müqayisə edin." },
+                  { i: Search, t: "Axtar və qarşılaşdır", d: "Filtrlərlə uyğun şirkətləri tapın, profilləri yoxlayın və qarşılaşdırın." },
                   { i: FileText, t: "Brief göndər", d: "Layihənizi detallı təsvir edin və seçilmiş şirkətlərə birbaşa göndərin." },
                   { i: MessageSquare, t: "Təklif al və başla", d: "Saatlar içində təkliflər alın, danışın və ən uyğununu seçin." },
                 ].map((s, i) => (

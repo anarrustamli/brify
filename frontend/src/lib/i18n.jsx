@@ -22,7 +22,7 @@ const dict = {
     "btn.send_brief": "Brief göndər",
     "btn.view_profile": "Profili gör",
     "btn.shortlist": "Shortlist",
-    "btn.compare": "Müqayisə",
+    "btn.compare": "Qarşılaşdır",
     "btn.message": "Mesaj yaz",
     "lang": "Dil",
   },

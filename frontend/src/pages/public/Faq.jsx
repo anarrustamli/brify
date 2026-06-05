@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import api from "@/lib/api";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const buyerFaq = [
@@ -14,12 +15,18 @@ const providerFaq = [
 ];
 
 export default function Faq() {
+  const [items, setItems] = useState([]);
+  useEffect(() => { api.get("/faqs").then((r) => setItems(r.data)).catch(() => {}); }, []);
+  const buyerItems = useMemo(() => items.filter((item) => item.category === "buyer"), [items]);
+  const providerItems = useMemo(() => items.filter((item) => item.category === "provider"), [items]);
+  const buyer = buyerItems.length ? buyerItems.map((item) => ({ q: item.question, a: item.answer })) : buyerFaq;
+  const provider = providerItems.length ? providerItems.map((item) => ({ q: item.question, a: item.answer })) : providerFaq;
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
       <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-slate-900">Tez-tez verilən suallar</h1>
       <h2 className="text-xl font-semibold mt-10 mb-4 text-slate-900">Buyer-lər üçün</h2>
       <Accordion type="single" collapsible className="bg-white border border-slate-200 rounded-xl divide-y divide-slate-200">
-        {buyerFaq.map((f, i) => (
+        {buyer.map((f, i) => (
           <AccordionItem key={i} value={`b${i}`} className="px-5">
             <AccordionTrigger className="text-left font-medium">{f.q}</AccordionTrigger>
             <AccordionContent className="text-slate-600">{f.a}</AccordionContent>
@@ -28,7 +35,7 @@ export default function Faq() {
       </Accordion>
       <h2 className="text-xl font-semibold mt-10 mb-4 text-slate-900">Provider-lər üçün</h2>
       <Accordion type="single" collapsible className="bg-white border border-slate-200 rounded-xl divide-y divide-slate-200">
-        {providerFaq.map((f, i) => (
+        {provider.map((f, i) => (
           <AccordionItem key={i} value={`p${i}`} className="px-5">
             <AccordionTrigger className="text-left font-medium">{f.q}</AccordionTrigger>
             <AccordionContent className="text-slate-600">{f.a}</AccordionContent>

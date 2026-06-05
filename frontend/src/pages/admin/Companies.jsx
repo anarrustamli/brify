@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import api from "@/lib/api";
+import { adminListItems } from "@/lib/adminData";
 import { PageHeader, StatusBadge } from "@/components/shared/Common";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,11 +17,11 @@ export default function Companies() {
   const [planEditing, setPlanEditing] = useState(null);
   const [customLimits, setCustomLimits] = useState({});
 
-  const load = () => {
+  const load = useCallback(() => {
     const q = filter === "all" ? "" : `?status=${filter}`;
-    api.get(`/admin/companies${q}`).then((r) => setCompanies(r.data));
-  };
-  useEffect(() => { load(); api.get("/admin/plans").then((r) => setPlans(r.data)); }, [filter]);
+    api.get(`/admin/companies${q}`).then((r) => setCompanies(adminListItems(r.data)));
+  }, [filter]);
+  useEffect(() => { load(); api.get("/admin/plans").then((r) => setPlans(adminListItems(r.data))); }, [load]);
 
   const updateStatus = async (id, status) => { await api.put(`/admin/companies/${id}/status`, { status }); toast.success("Yeniləndi"); load(); };
   const toggleVerify = async (id, v) => { await api.put(`/admin/companies/${id}/verify`, { verified: v }); toast.success(v ? "Doğrulandı" : "Doğrulama silindi"); load(); };

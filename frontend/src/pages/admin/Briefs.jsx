@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import api from "@/lib/api";
+import { adminListItems } from "@/lib/adminData";
 import { PageHeader, StatusBadge } from "@/components/shared/Common";
 import { fmtRange, timeAgo } from "@/lib/format";
 
 export default function Briefs() {
   const [items, setItems] = useState([]);
-  useEffect(() => { api.get("/admin/briefs").then((r) => setItems(r.data)); }, []);
+  useEffect(() => { api.get("/admin/briefs").then((r) => setItems(adminListItems(r.data))); }, []);
   return (
     <div>
       <PageHeader title="Brief-lər" description={`${items.length} brief`} />

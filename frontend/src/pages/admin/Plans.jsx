@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "@/lib/api";
+import { adminListItems } from "@/lib/adminData";
 import { PageHeader } from "@/components/shared/Common";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,7 +47,7 @@ export default function Plans() {
   const [editing, setEditing] = useState(null);
   const [open, setOpen] = useState(false);
 
-  const load = () => api.get("/admin/plans").then((r) => setPlans(r.data));
+  const load = () => api.get("/admin/plans").then((r) => setPlans(adminListItems(r.data)));
   useEffect(() => { load(); }, []);
 
   const save = async () => {

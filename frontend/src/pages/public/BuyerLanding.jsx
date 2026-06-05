@@ -13,7 +13,7 @@ export default function BuyerLanding() {
             Layihəniz üçün ən uyğun şirkəti tapın
           </h1>
           <p className="text-lg text-slate-600 mt-6 leading-relaxed">
-            Brief göndərin, müqayisə edin və saatlar içində təkliflər alın. Bütün B2B xidmət sahələri üzrə.
+            Brief göndərin, qarşılaşdırın və saatlar içində təkliflər alın. Bütün B2B xidmət sahələri üzrə.
           </p>
           <div className="flex flex-wrap gap-3 mt-8 justify-center">
             <Button asChild size="lg" className="bg-blue-600 hover:bg-blue-700">
@@ -30,7 +30,7 @@ export default function BuyerLanding() {
         <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 text-center">Üç sadə addım</h2>
         <div className="grid md:grid-cols-3 gap-6 mt-10">
           {[
-            { i: Search, t: "1. Axtar", d: "20+ kateqoriya, filtrlər və müqayisə alətləri." },
+            { i: Search, t: "1. Axtar", d: "20+ kateqoriya, filtrlər və qarşılaşdırma alətləri." },
             { i: FileText, t: "2. Brief göndər", d: "Layihəni təsvir et və seçilmiş şirkətlərə birbaşa göndər." },
             { i: MessageSquare, t: "3. Təklif al", d: "Saatlar içində təkliflər alın, danışın və başlayın." },
           ].map((s) => (

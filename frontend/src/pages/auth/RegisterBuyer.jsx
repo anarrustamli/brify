@@ -1,18 +1,22 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
-import { formatApiError } from "@/lib/api";
+import api, { formatApiError } from "@/lib/api";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
 export default function RegisterBuyer() {
   const { register } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: "", email: "", password: "", company_name: "", sector: "", phone: "" });
+  const [sectors, setSectors] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => { api.get("/sectors").then((r) => setSectors(r.data || [])).catch(() => setSectors([])); }, []);
 
   const update = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -60,7 +64,10 @@ export default function RegisterBuyer() {
             </div>
             <div>
               <Label>Sektor</Label>
-              <Input placeholder="E-commerce, Fintech..." value={form.sector} onChange={(e) => update("sector", e.target.value)} className="h-11 mt-1" data-testid="reg-sector" />
+              <Select value={form.sector || "none"} onValueChange={(v) => update("sector", v === "none" ? "" : v)}>
+                <SelectTrigger className="h-11 mt-1" data-testid="reg-sector"><SelectValue placeholder="Seçin" /></SelectTrigger>
+                <SelectContent><SelectItem value="none">Seçilməyib</SelectItem>{sectors.map((s) => <SelectItem key={s.id || s.slug} value={s.name}>{s.name}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Telefon</Label>

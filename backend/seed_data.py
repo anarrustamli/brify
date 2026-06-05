@@ -59,6 +59,7 @@ CATEGORIES = [
 ]
 
 INDUSTRIES = ["Fintech", "E-commerce", "Healthcare", "Education", "Real Estate", "Retail", "Telecom", "Logistics", "Energy", "Manufacturing"]
+SECTORS = [(name, name.lower().replace(" ", "-"), idx + 1) for idx, name in enumerate(INDUSTRIES)]
 LOCATIONS = ["Bakı", "Gəncə", "Sumqayıt", "Mingəçevir", "Şəki"]
 SIZES = ["1-10", "11-50", "51-200", "201-500", "500+"]
 
@@ -124,6 +125,7 @@ async def run_seed(db):
         await db.users.create_index("email", unique=True)
         await db.companies.create_index("slug")
         await db.categories.create_index("slug", unique=True)
+        await db.sectors.create_index("slug", unique=True)
         await db.services.create_index("company_id")
         await db.briefs.create_index("buyer_id")
         await db.proposals.create_index("brief_id")
@@ -139,6 +141,7 @@ async def run_seed(db):
             # Ensure categories and plans are seeded (idempotent)
             await _seed_categories_if_missing(db)
             await _seed_plans_if_missing(db)
+            await _seed_sectors_if_missing(db)
             await _ensure_search_ads(db)
             await _write_test_credentials()
             return
@@ -166,6 +169,8 @@ async def run_seed(db):
     # ----- Plans -----
     if await db.plans.count_documents({}) == 0:
         await db.plans.insert_many([dict(p) for p in PLANS])
+
+    await _seed_sectors_if_missing(db)
 
     # ----- Users (admin, demo buyer, demo provider) -----
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@bizmarket.az")
@@ -216,6 +221,8 @@ async def run_seed(db):
             "location": LOCATIONS[idx % len(LOCATIONS)],
             "founded_year": 2015 + (idx % 8),
             "company_size": c["size"],
+            "legal_type": ["llc", "sole_proprietor", "government"][idx % 3],
+            "vat_payer": idx % 2 == 0,
             "categories": c["cats"],
             "industries": c["industries"],
             "website": f"https://{c['name'].lower().replace(' ', '')}.az",
@@ -523,6 +530,21 @@ async def _seed_categories_if_missing(db):
             "description": f"{name} sahəsində aparıcı şirkətlər.",
             "seo_title": f"{name} şirkətləri | BizMarket",
             "seo_description": f"Ən yaxşı {name.lower()} şirkətlərini tapın.",
+            "created_at": now_iso(),
+        })
+
+
+async def _seed_sectors_if_missing(db):
+    if await db.sectors.count_documents({}) > 0:
+        return
+    for name, slug, order in SECTORS:
+        await db.sectors.insert_one({
+            "id": new_id(),
+            "name": name,
+            "slug": slug,
+            "description": f"{name} sektorunda fəaliyyət göstərən şirkətlər.",
+            "order": order,
+            "active": True,
             "created_at": now_iso(),
         })
 

@@ -1,12 +1,18 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Briefcase, Building2, ShoppingBag } from "lucide-react";
+import { Briefcase, Building2, ShieldCheck, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth";
 import { formatApiError } from "@/lib/api";
 import { toast } from "sonner";
+
+const QUICK_LOGINS = [
+  { role: "buyer", label: "Buyer", email: "buyer@bizmarket.az", password: "Buyer123!", icon: ShoppingBag },
+  { role: "provider", label: "Provider", email: "provider@bizmarket.az", password: "Provider123!", icon: Building2 },
+  { role: "admin", label: "Admin", email: "admin@bizmarket.az", password: "Admin123!", icon: ShieldCheck },
+];
 
 export default function Login() {
   const { login, demoLogin } = useAuth();
@@ -32,11 +38,13 @@ export default function Login() {
     }
   };
 
-  const demo = async (role) => {
+  const demo = async (account) => {
     setLoading(true);
     try {
-      const user = await demoLogin(role);
-      toast.success(`Demo ${role} kimi giriş`);
+      setEmail(account.email);
+      setPassword(account.password);
+      const user = await demoLogin(account.role);
+      toast.success(`${account.label} kimi giriş edildi`);
       navigate(redirectFor(user.role));
     } catch (err) {
       toast.error(formatApiError(err.response?.data?.detail));
@@ -84,13 +92,18 @@ export default function Login() {
 
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200" /></div>
-            <div className="relative flex justify-center text-xs"><span className="bg-slate-50 px-2 text-slate-500">və ya demo giriş</span></div>
+            <div className="relative flex justify-center text-xs"><span className="bg-slate-50 px-2 text-slate-500">və ya müvəqqəti rol girişi</span></div>
           </div>
 
           <div className="grid grid-cols-3 gap-2">
-            <Button variant="outline" onClick={() => demo("buyer")} disabled={loading} data-testid="demo-buyer" className="h-11"><ShoppingBag className="w-4 h-4 mr-1" />Buyer</Button>
-            <Button variant="outline" onClick={() => demo("provider")} disabled={loading} data-testid="demo-provider" className="h-11"><Building2 className="w-4 h-4 mr-1" />Provider</Button>
-            <Button variant="outline" onClick={() => demo("admin")} disabled={loading} data-testid="demo-admin" className="h-11">Admin</Button>
+            {QUICK_LOGINS.map((account) => {
+              const Icon = account.icon;
+              return (
+                <Button key={account.role} variant="outline" onClick={() => demo(account)} disabled={loading} data-testid={`demo-${account.role}`} className="h-11">
+                  <Icon className="w-4 h-4 mr-1" />{account.label}
+                </Button>
+              );
+            })}
           </div>
 
           <p className="text-sm text-center mt-8 text-slate-500">

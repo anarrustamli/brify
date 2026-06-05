@@ -61,10 +61,10 @@ export default function ProviderDashboard() {
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard testId="stat-views" icon={Eye} label="Profil baxışları" value={analytics.profile_views || 0} change={12} accent="blue" />
-        <StatCard testId="stat-leads" icon={Inbox} label="Lead-lər" value={analytics.leads || 0} change={18} accent="emerald" />
-        <StatCard testId="stat-proposals-sent" icon={TrendingUp} label="Göndərilmiş təkliflər" value={analytics.proposals_sent || 0} change={5} accent="indigo" />
-        <StatCard testId="stat-win-rate" icon={Target} label="Qazanma nisbəti" value={`${analytics.win_rate || 0}%`} accent="amber" />
+        <StatCard to="/provider/analytics" testId="stat-views" icon={Eye} label="Profil baxışları" value={analytics.profile_views || 0} change={12} accent="blue" description="Analitikaya keç" />
+        <StatCard to="/provider/leads" testId="stat-leads" icon={Inbox} label="Lead-lər" value={analytics.leads || 0} change={18} accent="emerald" description="Yeni dəvətləri gör" />
+        <StatCard to="/provider/proposals" testId="stat-proposals-sent" icon={TrendingUp} label="Göndərilmiş təkliflər" value={analytics.proposals_sent || 0} change={5} accent="indigo" description="Təklifləri idarə et" />
+        <StatCard to="/provider/statistics" testId="stat-win-rate" icon={Target} label="Qazanma nisbəti" value={`${analytics.win_rate || 0}%`} accent="amber" description="Performans detalları" />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6 mt-6">
