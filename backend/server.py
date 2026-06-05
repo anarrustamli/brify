@@ -2588,7 +2588,10 @@ async def _published_content_by_slug(slug: str):
 
 @api_router.get("/content/home")
 async def public_home_content():
-    return await _published_content_by_slug("home")
+    try:
+        return await _published_content_by_slug("home")
+    except HTTPException:
+        return {}
 
 
 @api_router.get("/content/provider-landing")
