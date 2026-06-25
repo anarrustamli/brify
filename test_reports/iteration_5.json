@@ -1,0 +1,52 @@
+{
+  "summary": "Iteration-5 re-test of Phase-1 backend fixes. All 3 targeted fixes verified PASS. New test file /app/backend/tests/test_iteration5_fixes.py (13/13 pass). Full regression: test_production_phase1.py 26 pass + 2 env skips (matches expected). Legacy backend_test.py: 34/35 pass — only test_ads_and_blog still fails because /api/blog returns paginated {items,total,page,limit} instead of plain list (explicitly noted as intentional and out of scope by main agent).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/blog",
+        "issue": "Returns paginated dict instead of legacy list; legacy backend_test.py::test_ads_and_blog still fails. Confirmed by main agent as intentional/out-of-scope for this iteration. Update or delete that legacy assertion."
+      }
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iteration5_fixes.py",
+    "/app/backend/tests/test_production_phase1.py",
+    "/app/test_reports/pytest/iteration_5_fixes.xml",
+    "/app/test_reports/pytest/iteration_5_phase1.xml",
+    "/app/test_reports/pytest/iteration_5_legacy.xml"
+  ],
+  "fix_verification": {
+    "fix1_admin_duplicate_plan_objectid_leak": "VERIFIED — POST /api/admin/plans/{id}/duplicate returns 200 with serializable JSON (no '_id' leak). Second duplicate to same slug returns 409. Tests: TestFix1AdminDuplicatePlan (2/2).",
+    "fix2_verification_submit_validation_order": "VERIFIED — Empty body returns 400 'legal_name is required' (even when a pending request exists). Only legal_name returns 400 'tax_id is required'. Submitting a complete valid payload while another is pending returns 409. Tests: TestFix2VerificationValidationOrder (3/3).",
+    "fix3_create_proposal_auto_lead_for_open_brief": "VERIFIED — Provider can POST /api/proposals for an OPEN brief without first calling /unlock; server auto-creates the lead and proposal succeeds. Legacy regression backend_test.py::TestProviderFlow::test_proposal_create_and_sent now PASSES (was failing in iteration_4). Tests: TestFix3CreateProposalAutoLead (1/1) + legacy regression PASS.",
+    "stale_plan_status_v2_removed": "VERIFIED — GET /api/me/plan-status-v2 returns 404 (no longer 500). Test: TestStalePlanStatusV2Removed (1/1).",
+    "existing_endpoints_preserved": "VERIFIED — /api/auth/demo-login (3 roles), /api/plans, /api/companies, /api/admin/stats, /api/me/buyer-dashboard, /api/me/analytics all return 200. Tests: TestExistingEndpointsRegression (6/6)."
+  },
+  "action_items": [
+    "Optional cleanup: remove or update legacy backend_test.py::TestPublic::test_ads_and_blog to assert the new paginated shape ({items,total,page,limit}).",
+    "Optional: business_routes.py is still >700 lines; consider splitting (verification/projects/billing/plans/open_briefs modules) — flagged in iteration_4 and not addressed.",
+    "Optional: server.py still at ~3187 lines — same split recommendation."
+  ],
+  "critical_code_review_comments": [
+    "Fix 1 (admin_duplicate_plan) properly refetches via find_one with projection {_id:0}; the unsafe mutate-then-return pattern is gone. Same care should be applied any other place insert_one is followed by `return doc` (worth a grep audit).",
+    "Fix 2 (submit_verification) now validates required fields before duplicate-check — correct ordering. Recommend extracting Pydantic model with required fields so FastAPI returns 422 automatically and the route stays thin.",
+    "Fix 3 (create_proposal) auto-creating a lead is convenient but couples proposal flow with lead-quota logic; consider a small internal helper `ensure_lead_for_brief(provider, brief)` to keep create_proposal readable.",
+    "File-size hygiene: server.py 3187 lines and business_routes.py >700 lines — still over the 700-line threshold."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration5_fixes.py (new)"
+  ],
+  "success_rate": {
+    "iteration5_fixes_suite": "100% (13/13)",
+    "phase1_production_suite": "100% executed (26 passed, 2 env-driven skips for protected-review chain when no pending proposals exist + /api/briefs missing — same skips as iteration_4)",
+    "legacy_backend_suite": "97% (34/35 — only /api/blog shape mismatch, declared out-of-scope by main agent)",
+    "overall_backend": "98% (73/75 non-skipped, 2 env skips, 1 known intentional shape change)"
+  },
+  "test_credentials": "Used /app/memory/test_credentials.md: admin@bizmarket.az/Admin123!, buyer@bizmarket.az/Buyer123!, provider@bizmarket.az/Provider123! via POST /api/auth/demo-login.",
+  "seed_data_creation": "Each run creates uniquely-slugged TEST_-prefixed plans and TEST_-prefixed verification requests. Plans persist (no admin delete endpoint) and accumulate across runs but cause no collision due to UUID suffix.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 3 iteration_4 backend fixes verified PASS. iteration_5_fixes.py is the focused regression file for these fixes — re-run with `pytest /app/backend/tests/test_iteration5_fixes.py -v`. Only outstanding known issue is the legacy /api/blog shape assertion in backend_test.py — main agent marked it intentional/out-of-scope; either update that assertion or mark it xfail. No new backend bugs found. Two persistent env skips in test_production_phase1.py: TestProtectedReviews::test_full_chain (no pending proposals in seed) and TestMigrations::test_briefs_visibility_field (/api/briefs not exposed). Frontend not tested per request."
+}

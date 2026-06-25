@@ -168,12 +168,6 @@ async def public_plans():
     return items
 
 
-@router.get("/me/plan-status-v2")
-async def my_plan_status_v2(user: dict = Depends(lambda: None)):
-    # Replaced at startup with a real require_role provider
-    raise HTTPException(500, "not wired")
-
-
 # Real plan-status endpoint (wired via dependency injection at register time)
 def _register_provider_endpoints():
     require_role = _deps["require_role"]
@@ -196,6 +190,13 @@ def _register_provider_endpoints():
     # ----- Verification -----
     @router.post("/me/verification/submit")
     async def submit_verification(body: dict, user: dict = Depends(require_role("provider"))):
+        # Validate required fields FIRST so client gets consistent 400 regardless of state.
+        legal_name = (body.get("legal_name") or "").strip()
+        tax_id = (body.get("tax_id") or "").strip()
+        if not legal_name:
+            raise HTTPException(400, "legal_name is required")
+        if not tax_id:
+            raise HTTPException(400, "tax_id is required")
         company = await _own_company(user)
         existing = await _db().verification_requests.find_one(
             {"company_id": company["id"], "status": {"$in": ["pending", "needs_more_info"]}}
@@ -208,9 +209,9 @@ def _register_provider_endpoints():
             "company_name": company.get("name", ""),
             "submitted_by": user["id"],
             "status": "pending",
-            "legal_name": body.get("legal_name", "").strip(),
+            "legal_name": legal_name,
             "brand_name": body.get("brand_name", "").strip() or company.get("name", ""),
-            "tax_id": body.get("tax_id", "").strip(),
+            "tax_id": tax_id,
             "registration_number": body.get("registration_number", "").strip(),
             "legal_address": body.get("legal_address", "").strip(),
             "business_email": body.get("business_email", "").strip(),
@@ -224,10 +225,6 @@ def _register_provider_endpoints():
             "created_at": now_iso(),
             "updated_at": now_iso(),
         }
-        if not doc["legal_name"]:
-            raise HTTPException(400, "legal_name is required")
-        if not doc["tax_id"]:
-            raise HTTPException(400, "tax_id is required")
         await _db().verification_requests.insert_one(doc)
         await _notify()(user["id"], "verification_submitted", "Yoxlama tələbi göndərildi",
                         "Şirkətiniz üçün yoxlama tələbi yaradıldı.", entity_id=doc["id"],
@@ -645,9 +642,11 @@ def _register_admin_endpoints():
                    "created_by": user["id"], "created_at": now_iso(), "updated_at": now_iso()}
         new_doc.pop("_id", None)
         await _db().plans.insert_one(new_doc)
-        await _save_plan_version(new_doc, user["id"], "duplicate")
-        await _audit()(user, "plan.duplicate", "plan", new_doc["id"], src, new_doc)
-        return new_doc
+        # Refetch so the response is JSON-safe (Motor mutates new_doc with an ObjectId on insert).
+        fresh = await _db().plans.find_one({"id": new_doc["id"]}, {"_id": 0})
+        await _save_plan_version(fresh, user["id"], "duplicate")
+        await _audit()(user, "plan.duplicate", "plan", new_doc["id"], src, fresh)
+        return fresh
 
     @router.post("/admin/plans/{pid}/activate")
     async def admin_activate_plan(pid: str, user: dict = Depends(require_role("admin"))):

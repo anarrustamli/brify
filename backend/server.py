@@ -1722,7 +1722,7 @@ async def create_proposal(payload: ProposalIn, user: dict = Depends(require_role
     company = await db.companies.find_one({"owner_id": user["id"]})
     if not company:
         raise HTTPException(404, "Company not found")
-    brief = await db.briefs.find_one({"id": payload.brief_id}, {"_id": 0, "title": 1, "buyer_id": 1, "status": 1, "expires_at": 1})
+    brief = await db.briefs.find_one({"id": payload.brief_id}, {"_id": 0})
     if not brief:
         raise HTTPException(404, "Brief not found")
     if brief.get("status") not in ("open", "active", None, ""):
@@ -1730,10 +1730,32 @@ async def create_proposal(payload: ProposalIn, user: dict = Depends(require_role
     # Brief expiry check
     if brief.get("expires_at") and brief["expires_at"] < now_iso():
         raise HTTPException(400, "Brief has expired")
-    # Lead must exist + not be locked/expired
+    # Lead must exist + not be locked/expired. For OPEN briefs without a lead,
+    # auto-create one (counts against monthly limit) so providers don't have to
+    # manually unlock first via /me/open-briefs.
     lead = await db.leads.find_one({"brief_id": payload.brief_id, "company_id": company["id"]}, {"_id": 0})
     if not lead:
-        raise HTTPException(403, "You must unlock this brief before sending a proposal")
+        if brief.get("visibility") == "open":
+            from business_services import PlanLimitService
+            within_limit, used, max_leads = await PlanLimitService(db).check_monthly_leads(company)
+            if not within_limit:
+                raise HTTPException(402, f"Monthly lead limit reached ({used}/{max_leads}). Upgrade to send more proposals.")
+            expires = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
+            lead = {
+                "id": new_id(),
+                "brief_id": payload.brief_id,
+                "company_id": company["id"],
+                "buyer_id": brief.get("buyer_id"),
+                "source": "open_brief",
+                "status": "new",
+                "sent_at": now_iso(),
+                "expires_at": expires,
+                "created_at": now_iso(),
+            }
+            await db.leads.insert_one(lead)
+            await PlanLimitService(db).increment_counter(company, "leads_received_count", 1)
+        else:
+            raise HTTPException(403, "You must be invited to this brief before sending a proposal")
     if lead.get("status") == "locked":
         raise HTTPException(402, "Lead is locked due to plan limit. Upgrade to send a proposal.")
     if lead.get("status") == "expired":
