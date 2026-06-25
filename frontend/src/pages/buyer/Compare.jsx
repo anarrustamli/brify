@@ -583,8 +583,13 @@ function openPrintReadyReport(report, title) {
   doc.body.appendChild(sheet);
 
   win.addEventListener("load", () => setTimeout(() => win.print(), 250));
-  // Trigger print directly in case the load event already fired before listener was attached.
-  setTimeout(() => { try { win.print(); } catch { /* ignore */ } }, 400);
+  // Trigger print directly in case the load event already fired before the listener was attached.
+  // The popup may already be closed (catch) or print may not be permitted (catch) — both
+  // are recoverable; the first window.print on load remains the primary trigger.
+  setTimeout(() => {
+    try { win.print(); }
+    catch (err) { console.debug("compare-report print fallback failed", err); }
+  }, 400);
 }
 
 function Insight({ title, value, percent, tone }) {

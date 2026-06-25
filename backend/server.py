@@ -1229,7 +1229,6 @@ async def my_plan_status(user: dict = Depends(require_role("provider"))):
     plan = await db.plans.find_one({"slug": company.get("plan", "free")}, {"_id": 0})
     if not plan:
         plan = {"slug": "free", "limits": {}, "features": []}
-    limits = plan.get("limits", {}) or {}
     services = await db.services.count_documents({"company_id": company["id"]})
     portfolio = await db.portfolio.count_documents({"company_id": company["id"]})
     case_studies = await db.case_studies.count_documents({"company_id": company["id"]})

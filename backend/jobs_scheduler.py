@@ -155,5 +155,5 @@ def start_runner(db, interval: int = DEFAULT_INTERVAL) -> None:
 
 
 def stop_runner() -> None:
-    global _stop
+    global _stop  # noqa: F824 — kept for clarity; future code may re-assign
     _stop = True

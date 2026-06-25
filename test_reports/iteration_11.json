@@ -1,0 +1,45 @@
+{
+  "summary": "Iteration-11 regression + Compare.jsx print-flow verification. Backend: 94 passed / 2 skipped / 1 failed across the 4 target suites (failure is unrelated stale-data: TestFix3CreateProposalAutoLead.test_open_brief_proposal_without_manual_unlock returns 400 'artıq təklif göndərmisiniz' because the demo provider already submitted a proposal for the seeded open brief — same test class is otherwise green and the issue is test data not code). The targeted iteration-7 + iteration-9 subset (the '56/56' the request asked about) is 56/56 passed. Smoke: GET /api/plans returned 10 entries until TEST_* leftovers from the dup-plan test were cleaned (now 4 = free,pro,premium,enterprise). All 3 demo-logins return 200, /api/me/plan-usage (provider) returns full payload (plan + period + usage + limits) — the `limits` removal in server.py:1232 did not affect the business_routes.me_plan_usage endpoint which is the actual route. Frontend: /buyer/compare with 2 companies passed via ?ids= renders the bottom action bar correctly, 'PDF export' button opens a new tab whose <body> contains the print-ready .sheet, toast 'PDF export üçün dizayn hazırlandı' shows, ZERO page errors, ZERO 'compare-report print fallback failed' debug logs (primary win.print succeeded — fallback catch was not triggered, which is the happy path). All 4 demo-login buttons route correctly (admin→/admin/dashboard, buyer→/buyer/dashboard, provider→/provider/dashboard). Smoke routes /pricing, /companies/nexora-digital, /buyer/projects, /provider/billing, /provider/verification, /provider/open-briefs, /admin/dashboard all loaded with no new page errors. No new React warnings introduced.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/proposals (against open-brief)", "issue": "test_open_brief_proposal_without_manual_unlock fails with 400 because demo provider has a pre-existing proposal for the seeded brief (test data pollution from prior runs, not a code regression). Either cleanup pre-existing proposals in fixture setup or use a fresh brief id per test."},
+      {"endpoint": "/api/plans", "issue": "Pre-test state had 6 leftover TEST_* plan rows from iteration-5 dup-plan test (test doesn't clean its own rows). Cleaned via direct mongo delete during this run."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration7_phase2_split.py",
+    "/app/backend/tests/test_iteration9_seed_richness.py",
+    "/app/backend/tests/test_iteration5_fixes.py",
+    "/app/backend/tests/test_production_phase1.py",
+    "/app/test_reports/pytest/iter11_regression.xml"
+  ],
+  "action_items": [
+    "(Hygiene) Make TestFix1AdminDuplicatePlan's dup/conflict tests clean up the TEST_dupbase_* and TEST_starter_* plans they create (use a fixture teardown). Otherwise /api/plans count drifts after every test run.",
+    "(Hygiene) test_open_brief_proposal_without_manual_unlock should either pick a brief the demo provider has NOT yet proposed on, or delete the pre-existing proposal in the fixture. Currently 400 'artıq təklif göndərmisiniz' is a false negative.",
+    "(Cosmetic, optional) Empty catch fix in Compare.jsx:587-592 is in place and logs via console.debug. It was never reached during normal flow (the primary win.print on load succeeded), but the code path is reachable and the implementation is correct."
+  ],
+  "critical_code_review_comments": [
+    "Compare.jsx:587-592 — empty catch is now console.debug-instrumented; correct, no longer silently swallows.",
+    "server.py:1224-1248 (/me/plan-status) — unused `limits` local removed per request; route still returns plan + usage payload correctly. Note: the route the request mentions as '/me/plan-usage' actually lives in business_routes.py:175 and was NOT the file touched; both endpoints work.",
+    "jobs_scheduler.py:17 — request claimed datetime/timezone imports were removed, but the file still imports `from datetime import datetime, timezone, timedelta`. Only `timedelta` is used (lines 68-69). `datetime` and `timezone` are still unused. This is cosmetic only (no runtime impact) but the iteration claim is inaccurate — they were NOT removed."
+  ],
+  "updated_files": [
+    "(test-only) Cleaned 6 stale TEST_* plan documents from MongoDB to restore /api/plans to the expected 4 entries"
+  ],
+  "success_rate": {
+    "backend": "98.9% (94/95 non-skipped; only failure is pre-existing-proposal data state, not code)",
+    "frontend": "100% on all requested flows (compare print, 4 demo logins, 7 smoke routes)"
+  },
+  "test_credentials": "admin@bizmarket.az/Admin123!, buyer@bizmarket.az/Buyer123!, provider@bizmarket.az/Provider123! — all verified via /api/auth/demo-login",
+  "seed_data_creation": "none (cleanup only — removed 6 TEST_* plan rows from prior iteration-5 runs)",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration-11 target fixes (Compare.jsx console.debug catch + server.py unused `limits` removal) verified clean. The jobs_scheduler.py unused-imports claim is technically inaccurate — datetime/timezone are STILL imported (only timedelta is used). Two latent test-hygiene issues need attention before next run: (1) TestFix1AdminDuplicatePlan needs teardown to remove its TEST_dupbase_*/TEST_starter_* rows from db.plans (causes /api/plans count drift across runs), and (2) test_open_brief_proposal_without_manual_unlock needs to either use a fresh brief or pre-delete the demo provider's existing proposal. Compare PDF-export new-tab flow works end-to-end and the new console.debug fallback path is correct (never had to fire in happy-path testing).",
+  "rca of the issue": "No new RCA. The single failing pytest case (test_open_brief_proposal_without_manual_unlock) is data-state, not code: the demo provider's previous proposal for that open brief still exists in db.proposals, and the create endpoint correctly enforces 'one proposal per provider per brief'. The 400 response is the correct business behavior; the test assertion needs updating to match (or fixture cleanup added)."
+}
