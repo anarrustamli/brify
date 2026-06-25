@@ -1,14 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import api from "@/lib/api";
 import { PageHeader } from "@/components/shared/Common";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { ShieldCheck, ShieldAlert, ShieldQuestion, Clock, FileText, ExternalLink } from "lucide-react";
+import { ShieldCheck, ShieldAlert, ShieldQuestion, Clock, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 const TABS = [
@@ -29,7 +28,7 @@ export default function AdminVerification() {
   const [note, setNote] = useState("");
   const [reason, setReason] = useState("");
 
-  const load = async (tab = activeTab) => {
+  const load = useCallback(async (tab) => {
     setLoading(true);
     try {
       const { data } = await api.get("/admin/verification/queue", { params: { status: tab } });
@@ -39,9 +38,9 @@ export default function AdminVerification() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { load(activeTab); }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(activeTab); }, [activeTab, load]);
 
   const openAction = (req, mode) => {
     setSelected(req);
@@ -67,7 +66,7 @@ export default function AdminVerification() {
       }
       setSelected(null);
       setActionMode(null);
-      load();
+      load(activeTab);
     } catch (err) {
       toast.error(err?.response?.data?.detail || "Əməliyyat uğursuz oldu");
     }

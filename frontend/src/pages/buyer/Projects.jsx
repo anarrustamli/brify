@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import api from "@/lib/api";
 import { PageHeader } from "@/components/shared/Common";
 import { Button } from "@/components/ui/button";
@@ -17,18 +17,18 @@ export default function Projects() {
   const [mode, setMode] = useState(null); // "complete" | "review"
   const [review, setReview] = useState({ rating: 5, title: "", text: "" });
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const { data } = await api.get("/me/projects");
       setProjects(data || []);
     } catch (err) {
-      // ignore
+      console.error("projects load", err);
     } finally {
       setLoading(false);
     }
-  };
-  useEffect(() => { load(); }, []);
+  }, []);
+  useEffect(() => { load(); }, [load]);
 
   const completeProject = async () => {
     if (!selected) return;

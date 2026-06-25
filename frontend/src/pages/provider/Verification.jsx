@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import api from "@/lib/api";
 import { PageHeader } from "@/components/shared/Common";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ export default function Verification() {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     try {
       const { data } = await api.get("/me/verification");
       setState(data);
@@ -55,9 +55,9 @@ export default function Verification() {
     } catch (err) {
       console.error("verification load", err);
     }
-  };
+  }, []);
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => { refresh(); }, [refresh]);
 
   const submit = async () => {
     if (!form.legal_name || !form.tax_id) {

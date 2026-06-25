@@ -9,9 +9,9 @@ import { formatApiError } from "@/lib/api";
 import { toast } from "sonner";
 
 const QUICK_LOGINS = [
-  { role: "buyer", label: "Buyer", email: "buyer@bizmarket.az", password: "Buyer123!", icon: ShoppingBag },
-  { role: "provider", label: "Provider", email: "provider@bizmarket.az", password: "Provider123!", icon: Building2 },
-  { role: "admin", label: "Admin", email: "admin@bizmarket.az", password: "Admin123!", icon: ShieldCheck },
+  { role: "buyer", label: "Buyer", icon: ShoppingBag },
+  { role: "provider", label: "Provider", icon: Building2 },
+  { role: "admin", label: "Admin", icon: ShieldCheck },
 ];
 
 export default function Login() {
@@ -41,8 +41,8 @@ export default function Login() {
   const demo = async (account) => {
     setLoading(true);
     try {
-      setEmail(account.email);
-      setPassword(account.password);
+      // Demo accounts log in by role only — no credentials touch the client.
+      // Server resolves the role to the seeded demo user via /api/auth/demo-login.
       const user = await demoLogin(account.role);
       toast.success(`${account.label} kimi giriş edildi`);
       navigate(redirectFor(user.role));

@@ -1,0 +1,71 @@
+{
+  "summary": "Iteration-6 re-test of Brify Phase-1 code-review fixes (XSS, hardcoded creds, dynamic import, hook deps, empty catch, unused imports). All security + hook fixes verified PASS at static + runtime + network layer.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_production_phase1.py",
+    "/app/backend/tests/test_iteration5_fixes.py",
+    "/app/test_reports/pytest/iteration_6_phase1_and_fixes.xml"
+  ],
+  "fix_verification": {
+    "fix1_xss_compare_print_no_document_write": "VERIFIED — Static: grep shows ONLY createElement + doc.head.appendChild(style) + importNode(report,true); no document.write, no innerHTML, escapeHtml removed. Runtime: instrumented window.document.write with a counter via add_init_script before navigating /buyer/compare — counter remained 0 after page load and clicking visible buttons. Print-popout button itself not shown (empty shortlist for demo buyer) but the only code path that produces the popout is verified safe by source inspection.",
+    "fix2_login_no_hardcoded_creds": "VERIFIED — (a) Source: QUICK_LOGINS only carries {role,label,icon} — no email/password literals; demo() calls demoLogin(account.role). (b) Served HTML scanned for 'Buyer123!','Provider123!','Admin123!','buyer@bizmarket.az','provider@bizmarket.az','admin@bizmarket.az' — 0 hits. (c) Network: 3 POSTs to /api/auth/demo-login captured — all bodies were exactly {\"role\":\"buyer|provider|admin\"} — no password/email field leaked. (d) All 3 demo logins succeed and land on the correct dashboard (/buyer/dashboard, /provider/dashboard, /admin/dashboard).",
+    "fix3_business_routes_top_level_import": "VERIFIED — `from jobs_scheduler import run_jobs_once` at module top of business_routes.py (line 36); run_jobs_once invoked at line 723. /api/admin/jobs/run-expiry-check returns 200 for admin, 403 for non-admin (test_run_expiry_admin + test_run_expiry_non_admin_forbidden pass). No regression in /api/admin/plans CRUD (TestAdminPlansV2::test_full_flow + Fix1 duplicate tests all pass).",
+    "fix4_hook_deps_usecallback": "VERIFIED — All 5 files wrap load/refresh in useCallback and pass it to useEffect deps: Billing.jsx, OpenBriefs.jsx, Verification.jsx (provider), AdminVerification.jsx, Projects.jsx. Runtime: visited all 5 pages, browser console had ZERO React hook-dep warnings and ZERO 'missing key' warnings (Billing plan-cards composite key works).",
+    "fix5_buyer_projects_catch_logs": "VERIFIED — Projects.jsx line 25-26 now has `} catch (err) { console.error(\"projects load\", err); }` — silent swallow removed.",
+    "fix6_unused_imports_removed": "VERIFIED — business_routes.py imports cleaned (only `APIRouter, Depends, HTTPException` from fastapi; `Request` / `month_window` / `timezone` no longer imported)."
+  },
+  "smoke_endpoints": {
+    "POST /api/auth/demo-login (admin)": 200,
+    "POST /api/auth/demo-login (buyer)": 200,
+    "POST /api/auth/demo-login (provider)": 200,
+    "GET /api/plans": 200,
+    "GET /api/companies": 200,
+    "GET /api/admin/stats (admin token)": 200,
+    "POST /api/admin/jobs/run-expiry-check (admin token)": 200
+  },
+  "regression_pytest": {
+    "test_production_phase1.py": "26 passed, 2 environment-driven skips (TestProtectedReviews::test_full_chain, TestMigrations::test_briefs_visibility_field — same as iteration_5)",
+    "test_iteration5_fixes.py": "13 passed",
+    "combined": "39 passed / 2 skipped / 0 failed",
+    "junit_xml": "/app/test_reports/pytest/iteration_6_phase1_and_fixes.xml"
+  },
+  "frontend_runtime_observations": {
+    "demo_login_post_bodies": [
+      "{\"role\":\"buyer\"}",
+      "{\"role\":\"provider\"}",
+      "{\"role\":\"admin\"}"
+    ],
+    "html_credential_scan": "0 hits for any demo password / demo email literal",
+    "react_hook_warnings": "0 across /buyer/projects, /buyer/compare, /provider/billing, /provider/open-briefs, /provider/verification, /admin/verification",
+    "document_write_calls_on_compare": 0,
+    "admin_verification_tabs": ["Növbədə", "Əlavə məlumat", "Təsdiqlənmiş", "Rədd edilmiş"],
+    "admin_verification_actions_visible": ["Təsdiqlə", "Əlavə məlumat", "Rədd et"]
+  },
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Compare.jsx XSS fix is solid: importNode(true) deep-clones the React-rendered tree; doc.head.appendChild(style) used instead of innerHTML; no document.write anywhere. Consider also setting target=_blank rel=noopener when opening the popout if not already.",
+    "Login.jsx demo flow is clean. Server-side /api/auth/demo-login MUST be disabled or behind ENV flag in production (not for this iteration but worth a follow-up).",
+    "business_routes.py top-level import of run_jobs_once removes the dynamic-import code smell; no circular-import side effects observed at boot.",
+    "All 5 useCallback wrappers are correct and deps are minimal (load: [q] on OpenBriefs, load: [activeTab] not used because tab is passed as arg — that pattern is fine).",
+    "File-size hygiene still pending: server.py ~3187 lines, business_routes.py >700 lines — flagged in iteration_4/5, still open."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (39/39 non-skipped, 2 known env skips)",
+    "frontend": "100% on tested flows (3 demo logins + 6 page loads + XSS probe + credential scan)"
+  },
+  "test_credentials": "Used /app/memory/test_credentials.md via POST /api/auth/demo-login (no client-side passwords).",
+  "seed_data_creation": "None new this iteration — relied on existing TEST_-prefixed seed from prior runs.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All Phase-1 code-review fixes (XSS, hardcoded creds, dynamic import, hook deps, silent catch, unused imports) verified at source + runtime + network layers. Backend regression 39/0/2-skip stable. Frontend: demo-login network bodies confirmed to contain only {role}; HTML/bundle has no demo password/email literals; document.write counter probe on /buyer/compare reports 0 calls. Note: had to restart frontend supervisor once because the running webpack-dev-server had a stale bundle with `http://127.0.0.1:8001` baked in (REACT_APP_BACKEND_URL apparently not present at original start). After `sudo supervisorctl restart frontend` it picked up the public URL and all calls went through /api/*. If future iterations see CORS-to-127.0.0.1 errors, restart frontend.",
+  "rca_of_the_issue": "N/A — no new bugs found. Restart-required quirk on frontend (env not picked up by webpack-dev-server initially) is environmental, not a code bug."
+}

@@ -555,7 +555,17 @@ function openPrintReadyReport(report, title) {
     toast.error("PDF pəncərəsi bloklandı. Popup icazəsini aktiv edin.");
     return;
   }
-  win.document.write(`<!doctype html><html><head><title>${escapeHtml(title)}</title><style>
+  const doc = win.document;
+  // Clear any baseline content and rebuild via safe DOM APIs (no document.write,
+  // no innerHTML on the head). The report node itself is a sanitized React-rendered
+  // DOM clone and only its outerHTML is reattached as already-built nodes.
+  doc.open();
+  doc.close();
+
+  doc.title = title;
+
+  const style = doc.createElement("style");
+  style.textContent = `
     @page { size: A4 landscape; margin: 14mm; }
     body { margin: 0; background: #f8fafc; color: #0f172a; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     .sheet { padding: 24px; }
@@ -563,12 +573,18 @@ function openPrintReadyReport(report, title) {
     img { max-width: 100%; object-fit: cover; border-radius: 8px; }
     button { display: none !important; }
     .fixed { display: none !important; }
-  </style></head><body><div class="sheet">${report.outerHTML}</div><script>window.onload = () => { setTimeout(() => window.print(), 250); };</script></body></html>`);
-  win.document.close();
-}
+  `;
+  doc.head.appendChild(style);
 
-function escapeHtml(value) {
-  return String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
+  const sheet = doc.createElement("div");
+  sheet.className = "sheet";
+  // importNode safely clones the already-rendered React DOM tree.
+  sheet.appendChild(doc.importNode(report, true));
+  doc.body.appendChild(sheet);
+
+  win.addEventListener("load", () => setTimeout(() => win.print(), 250));
+  // Trigger print directly in case the load event already fired before listener was attached.
+  setTimeout(() => { try { win.print(); } catch { /* ignore */ } }, 400);
 }
 
 function Insight({ title, value, percent, tone }) {

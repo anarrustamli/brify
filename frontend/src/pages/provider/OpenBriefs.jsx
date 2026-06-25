@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import api from "@/lib/api";
 import { PageHeader } from "@/components/shared/Common";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ export default function OpenBriefs() {
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const { data } = await api.get("/me/open-briefs", { params: { q } });
@@ -24,9 +24,9 @@ export default function OpenBriefs() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [q]);
 
-  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [load]);
 
   const unlock = async (b) => {
     try {

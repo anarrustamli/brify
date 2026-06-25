@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import api from "@/lib/api";
 import { PageHeader } from "@/components/shared/Common";
 import { Button } from "@/components/ui/button";
 import { Check, CreditCard, Calendar, AlertCircle, FileText } from "lucide-react";
 import { toast } from "sonner";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const formatDate = (iso) => (iso ? new Date(iso).toLocaleDateString("az-AZ") : "—");
@@ -15,30 +14,27 @@ export default function Billing() {
   const [usage, setUsage] = useState(null);
   const [current, setCurrent] = useState({ plan: null, subscription: null });
   const [invoices, setInvoices] = useState([]);
-  const [payments, setPayments] = useState([]);
   const [paymentInstructions, setPaymentInstructions] = useState(null);
   const [billingCycle, setBillingCycle] = useState("monthly");
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     try {
-      const [planRes, usageRes, currentRes, invRes, billRes] = await Promise.all([
+      const [planRes, usageRes, currentRes, invRes] = await Promise.all([
         api.get("/public/plans"),
         api.get("/me/plan-usage"),
         api.get("/me/current-plan"),
         api.get("/me/invoices"),
-        api.get("/me/billing"),
       ]);
       setPlans(planRes.data || []);
       setUsage(usageRes.data);
       setCurrent(currentRes.data || {});
       setInvoices(invRes.data || []);
-      setPayments(billRes.data?.payments || []);
     } catch (err) {
       console.error("billing load", err);
     }
-  };
+  }, []);
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => { refresh(); }, [refresh]);
 
   const requestPlan = async (plan) => {
     if (plan.slug === current?.plan?.slug) return;
@@ -162,8 +158,8 @@ export default function Billing() {
                   <h3 className="font-bold text-slate-900 text-lg">{p.name}</h3>
                   <div className="text-3xl font-bold tracking-tight mt-2 text-slate-900">{price} <span className="text-sm font-normal text-slate-500">AZN/{billingCycle === "yearly" ? "il" : "ay"}</span></div>
                   <ul className="mt-4 space-y-2 text-sm min-h-[6rem]">
-                    {(p.feature_list || []).slice(0, 6).map((f, i) => (
-                      <li key={i} className="flex gap-2"><Check className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" /><span className="text-slate-700">{f}</span></li>
+                    {(p.feature_list || []).slice(0, 6).map((f) => (
+                      <li key={`${p.slug}-${f}`} className="flex gap-2"><Check className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" /><span className="text-slate-700">{f}</span></li>
                     ))}
                   </ul>
                   <Button

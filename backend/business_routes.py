@@ -19,10 +19,10 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from business_services import (
@@ -32,8 +32,8 @@ from business_services import (
     now_iso,
     new_id,
     _now,
-    month_window,
 )
+from jobs_scheduler import run_jobs_once
 
 log = logging.getLogger("brify.routes")
 
@@ -446,10 +446,6 @@ def _register_provider_endpoints():
         return _strip(doc)
 
     # ----- Subscription requests v2 -----
-    class SubscriptionRequestIn(BaseModel):
-        plan: str
-        billing_cycle: Optional[str] = "monthly"
-
     @router.post("/me/subscription/request-upgrade")
     async def request_upgrade(body: SubscriptionRequestIn, user: dict = Depends(require_role("provider"))):
         company = await _own_company(user)
@@ -724,7 +720,6 @@ def _register_admin_endpoints():
 
     @router.post("/admin/jobs/run-expiry-check")
     async def admin_run_expiry_check(user: dict = Depends(require_role("admin"))):
-        from jobs_scheduler import run_jobs_once
         result = await run_jobs_once(_db())
         await _audit()(user, "jobs.run", "system", "expiry", {}, result)
         return result
