@@ -591,7 +591,7 @@ export default function CompanyProfile({ buyerMode = false }) {
                 <h3 className="mt-3 text-xl font-bold text-slate-950">{item.title}</h3>
                 <div className="mt-5 grid gap-4 md:grid-cols-3">
                   <div><div className="text-xs font-bold uppercase tracking-wide text-slate-400">Çətinlik</div><p className="mt-2 text-sm leading-6 text-slate-600">{item.challenge}</p></div>
-                  <div><div className="text-xs font-bold uppercase tracking-wide text-slate-400">Həll</div><p className="mt-2 text-sm leading-6 text-slate-600">{item.solution}</p></div>
+                  <div><div className="text-xs font-bold uppercase tracking-wide text-slate-400">Həll</div><p className="mt-2 text-sm leading-6 text-slate-600">{item.solution || item.approach}</p></div>
                   <div><div className="text-xs font-bold uppercase tracking-wide text-slate-400">Nəticə</div><p className="mt-2 text-sm font-semibold leading-6 text-emerald-700">{item.results}</p></div>
                 </div>
                 {Array.isArray(item.metrics) && item.metrics.length > 0 ? (
