@@ -1,0 +1,33 @@
+{
+  "summary": "Frontend-only i18n verification for iteration-8 follow-up. Verified that EN and AZ strings render correctly on the four pages (provider/Billing, provider/Verification, provider/OpenBriefs, buyer/Projects) when localStorage.bm_lang is toggled. All 8 EN target strings and all 5 AZ target strings asserted on body innerText rendered correctly. Buyer Projects complete/review button labels could not be visually observed because demo buyer has no projects in DB (empty state), but source code correctly uses t('projects.complete') / t('projects.write_review'). Backend testing skipped per request. No React console/hook warnings on any of the 4 pages — only 2 unrelated 401s (likely a background API for notifications/sub-feature).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "provider/Billing.jsx", "issues": ["Several user-visible strings remain hardcoded in AZ outside the iteration scope: 'Billing dövrü:', 'Aylıq', 'İllik (-15%)', 'Cari plan' (Button label line 173), 'Sorğu göndər' (Button label line 173), 'Bu ayın istifadəsi', 'Faktura yoxdur', 'Bu ay istifadə olunan lead' (table footer). Also payment-instructions block has hardcoded AZ: 'Bank', 'Hesab', 'Ödəniş təlimatları'. These have EN/AZ keys defined in i18n.jsx (billing.bank, billing.account, billing.payment_instructions, billing.billing_cycle, billing.monthly, billing.yearly, billing.month_usage, billing.current_subscriber, billing.request_upgrade) but are not wired."]},
+      {"screen": "provider/Verification.jsx", "issues": ["STATUS_META labels and descriptions (line 13-18), Field labels ('Hüquqi ad *', 'Brend adı', 'VÖEN / Tax ID *', etc.), and submit button text ('Yenidən göndər', 'Sorğunu göndər') are hardcoded AZ; matching keys exist (verification.legal_name, verification.brand_name, verification.tax_id, verification.submit, verification.resubmit, verification.status.*) but are not wired. Outside the four-key scope this iteration declared, however worth flagging for next iteration."]},
+      {"screen": "provider/OpenBriefs.jsx", "issues": ["Search placeholder 'Brief axtar...', 'Axtar' button, empty state 'Hələ açıq brief yoxdur', 'Açıldı'/'Kilidli' status pills, 'Aç (1 lead)' unlock button, 'Təklif göndər →' button, 'Planı yüksəlt →' upgrade link are all hardcoded AZ. Matching keys exist (openbriefs.unlock, openbriefs.unlocked, openbriefs.locked, openbriefs.send_proposal, openbriefs.empty, btn.search, btn.upgrade) but only title/subtitle/quota label are wired."]},
+      {"screen": "buyer/Projects.jsx", "issues": ["Empty state 'Hələ aktiv layihə yoxdur', status pill labels ('Tamamlanıb', 'Aktiv'), modal titles ('Layihəni tamamla', 'Verified rəy yaz'), Cancel button ('Ləğv et'), Submit button ('Tamamla', 'Göndər'), field labels ('Ümumi qiymət', 'Başlıq *', 'Rəyiniz *') and 'Mesaj' nav-button are still hardcoded AZ. Keys exist (projects.empty, projects.status.active, projects.status.completed, projects.review_title, projects.review_text, projects.review_rating, btn.cancel, btn.send) but not wired."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "(Optional, not blocking this iteration) Wire the remaining hardcoded AZ strings on all four pages using the i18n keys already present in /app/frontend/src/lib/i18n.jsx — see design_issues for the specific strings per page.",
+    "Seed a demo project for buyer@bizmarket.az so future iterations can visually verify the 'projects.complete' / 'projects.write_review' button labels (the code path is correct but currently unreachable with seeded demo data)."
+  ],
+  "critical_code_review_comments": [
+    "i18n.jsx hardcodes locale 'az-AZ' for formatDate in Billing.jsx, OpenBriefs.jsx, Projects.jsx and submitted_at in Verification.jsx — dates won't follow the user's chosen lang. Consider passing the active lang to toLocaleDateString.",
+    "Verification.jsx dynamic Tailwind classes (`bg-${meta.color}-50`, `text-${meta.color}-900`, etc.) on lines 91-96 will be purged by Tailwind JIT unless safelisted. This is a real production-purge risk; confirm tailwind.config safelist or refactor to a static class map.",
+    "Billing.jsx Promise.all in refresh() crashes the whole load if one of 4 endpoints fails (the user sees an empty page silently because only console.error is called). Consider Promise.allSettled.",
+    "OpenBriefs.jsx onKeyDown handler triggers load() but the `q` value in the closure is stale until next render — uses useCallback dep [q], so it's fine, but worth double-checking that pressing Enter immediately after typing actually picks up the latest value."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "skipped", "frontend": "100% (8/8 EN strings + 5/5 AZ strings rendered)"},
+  "test_credentials": "buyer@bizmarket.az / Buyer123!, provider@bizmarket.az / Provider123! — both via /api/auth/demo-login",
+  "seed_data_creation": "none",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration-8 i18n wiring scope (PageHeader title/description + 3 key labels per page) is verified working on all 4 pages in both EN and AZ. Many other user-visible strings on the same pages are still hardcoded AZ but have i18n keys already defined — see design_issues for the explicit list if the next iteration tackles full i18n coverage. Demo buyer has no projects, so buyer/Projects.jsx button labels (t('projects.complete'), t('projects.write_review')) are not visually observable; verify via source-code review or seed a project first.",
+  "rca of the issue": "N/A — feature works as scoped."
+}

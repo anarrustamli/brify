@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { ShieldCheck, ShieldAlert, ShieldQuestion, Clock, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
 
 const STATUS_META = {
   pending: { icon: Clock, label: "Yoxlama növbəsində", color: "amber", description: "Admin sənədlərinizi yoxlayır. Bu adətən 1–2 iş günü çəkir." },
@@ -17,6 +18,7 @@ const STATUS_META = {
 };
 
 export default function Verification() {
+  const { t } = useI18n();
   const [state, setState] = useState({ request: null, company_verified: false });
   const [form, setForm] = useState({
     legal_name: "",
@@ -83,7 +85,7 @@ export default function Verification() {
 
   return (
     <div data-testid="provider-verification">
-      <PageHeader title="Şirkət doğrulaması" description="Verified badge alıb müştərilərə daha çox güvən verin" />
+      <PageHeader title={t("verification.title")} description={t("verification.subtitle")} />
 
       {meta && (
         <Card className={`mb-6 border-${meta.color}-200 bg-${meta.color}-50`} data-testid={`verification-status-${status}`}>

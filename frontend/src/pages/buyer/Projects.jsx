@@ -9,8 +9,10 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { CheckCircle2, Star, MessageSquare, Briefcase } from "lucide-react";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
 
 export default function Projects() {
+  const { t } = useI18n();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
@@ -66,7 +68,7 @@ export default function Projects() {
 
   return (
     <div data-testid="buyer-projects">
-      <PageHeader title="Layihələrim" description="Qəbul edilmiş təkliflərdən yaranan layihələr" />
+      <PageHeader title={t("projects.title")} description={t("projects.subtitle")} />
 
       {loading ? (
         <div className="text-slate-500 py-8 text-center">Yüklənir...</div>
@@ -99,12 +101,12 @@ export default function Projects() {
                 <div className="flex flex-wrap gap-2 mt-4">
                   {p.status === "active" && (
                     <Button onClick={() => { setSelected(p); setMode("complete"); }} className="bg-emerald-600 hover:bg-emerald-700" size="sm" data-testid={`btn-complete-${p.id}`}>
-                      <CheckCircle2 className="w-4 h-4 mr-1" /> Layihəni tamamla
+                      <CheckCircle2 className="w-4 h-4 mr-1" /> {t("projects.complete")}
                     </Button>
                   )}
                   {p.status === "completed" && (
                     <Button onClick={() => { setSelected(p); setMode("review"); }} className="bg-blue-600 hover:bg-blue-700" size="sm" data-testid={`btn-review-${p.id}`}>
-                      <Star className="w-4 h-4 mr-1" /> Verified rəy yaz
+                      <Star className="w-4 h-4 mr-1" /> {t("projects.write_review")}
                     </Button>
                   )}
                   <Button variant="outline" size="sm" asChild><a href="/buyer/messages"><MessageSquare className="w-4 h-4 mr-1" />Mesaj</a></Button>

@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Search, Calendar, DollarSign, Lock, Eye, Inbox } from "lucide-react";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
 
 export default function OpenBriefs() {
+  const { t } = useI18n();
   const [items, setItems] = useState([]);
   const [quota, setQuota] = useState(null);
   const [q, setQ] = useState("");
@@ -40,12 +42,12 @@ export default function OpenBriefs() {
 
   return (
     <div data-testid="provider-open-briefs">
-      <PageHeader title="Open Brief Marketplace" description="Bazardakı açıq layihələri kəşf edin" />
+      <PageHeader title={t("openbriefs.title")} description={t("openbriefs.subtitle")} />
 
       {quota && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-5 flex items-center justify-between" data-testid="leads-quota-banner">
           <div className="text-sm text-blue-900">
-            Bu ay açılmış lead-lər: <strong>{quota.used}</strong> / {quota.limit === null ? "limitsiz" : quota.limit}
+            {t("openbriefs.quota")}: <strong>{quota.used}</strong> / {quota.limit === null ? "∞" : quota.limit}
           </div>
           {!quota.within_limit && (
             <a href="/provider/billing" className="text-sm font-semibold text-blue-700 hover:underline">Planı yüksəlt →</a>

@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Check, CreditCard, Calendar, AlertCircle, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useI18n } from "@/lib/i18n";
 
 const formatDate = (iso) => (iso ? new Date(iso).toLocaleDateString("az-AZ") : "—");
 const fmtAmount = (n, c = "AZN") => `${Number(n || 0).toFixed(0)} ${c}`;
 
 export default function Billing() {
+  const { t } = useI18n();
   const [plans, setPlans] = useState([]);
   const [usage, setUsage] = useState(null);
   const [current, setCurrent] = useState({ plan: null, subscription: null });
@@ -83,12 +85,12 @@ export default function Billing() {
 
   return (
     <div data-testid="provider-billing">
-      <PageHeader title="Abunəlik və Ödəniş" description={`Mövcud plan: ${planName}`} />
+      <PageHeader title={t("billing.title")} description={`${t("billing.current_plan")}: ${planName}`} />
 
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-xl p-6 mb-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <div className="text-sm opacity-90">Cari plan</div>
+            <div className="text-sm opacity-90">{t("billing.current_plan")}</div>
             <div className="text-3xl font-bold tracking-tight mt-1" data-testid="current-plan-name">{planName}</div>
             <div className="text-sm opacity-90 mt-2 flex items-center gap-4 flex-wrap">
               {sub ? (
@@ -101,12 +103,12 @@ export default function Billing() {
                   </span>
                 </>
               ) : (
-                <span>Aktiv abunəlik yoxdur — Free planda</span>
+                <span>{t("billing.no_active_sub")}</span>
               )}
             </div>
             {expiringSoon && (
               <div className="mt-3 text-sm bg-amber-500/20 border border-amber-300/30 rounded-lg px-3 py-2 inline-flex items-center gap-2" data-testid="expiring-warning">
-                <AlertCircle className="w-4 h-4" /> Abunəliyiniz yaxında bitir
+                <AlertCircle className="w-4 h-4" /> {t("billing.expiring_soon")}
               </div>
             )}
           </div>
@@ -135,9 +137,9 @@ export default function Billing() {
 
       <Tabs defaultValue="plans" className="mb-6">
         <TabsList>
-          <TabsTrigger value="plans" data-testid="tab-plans">Planlar</TabsTrigger>
-          <TabsTrigger value="usage" data-testid="tab-usage">İstifadə</TabsTrigger>
-          <TabsTrigger value="invoices" data-testid="tab-invoices">Faktura tarixçəsi</TabsTrigger>
+          <TabsTrigger value="plans" data-testid="tab-plans">{t("billing.tab_plans")}</TabsTrigger>
+          <TabsTrigger value="usage" data-testid="tab-usage">{t("billing.tab_usage")}</TabsTrigger>
+          <TabsTrigger value="invoices" data-testid="tab-invoices">{t("billing.tab_invoices")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="plans" className="mt-5">
