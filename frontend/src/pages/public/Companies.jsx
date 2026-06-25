@@ -6,6 +6,8 @@ import {
   Crown,
   GitCompare,
   Heart,
+  LayoutGrid,
+  List,
   MapPin,
   ReceiptText,
   Search,
@@ -29,11 +31,14 @@ import BriefSendDialog from "@/components/marketplace/BriefSendDialog";
 import { InlineAdCard, SidebarAd, TopBannerAd } from "@/components/marketplace/AdCards";
 import { toast } from "sonner";
 
+const PAGE_SIZE = 12;
+
 const blankFilters = {
   q: "",
   category: "",
   location: "",
   verified: false,
+  sponsored: false,
   legal_type: "",
   vat_payer: false,
   industry: "",
@@ -60,10 +65,14 @@ export default function Companies({ buyerMode = false }) {
   const [compared, setCompared] = useState([]);
   const [shortlistIds, setShortlistIds] = useState([]);
   const [briefCompany, setBriefCompany] = useState(null);
+  const [page, setPage] = useState(1);
+  const [view, setView] = useState(() => localStorage.getItem("bm_companies_view") || "list");
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const returnTo = `${location.pathname}${location.search}`;
+
+  const setViewMode = (v) => { setView(v); localStorage.setItem("bm_companies_view", v); };
 
   useEffect(() => {
     api.get("/categories").then((r) => setCategories(r.data));
@@ -84,7 +93,9 @@ export default function Companies({ buyerMode = false }) {
     Object.entries(filters).forEach(([k, v]) => {
       if (v && v !== "all" && v !== 0 && v !== false) q.set(k, v);
     });
-    setSearchParams(q, { replace: true });
+    q.set("page", page);
+    q.set("limit", PAGE_SIZE);
+    if (page === 1) setSearchParams(q, { replace: true });
     api.get(`/companies?${q.toString()}`).then((r) => {
       setCompanies(r.data.items);
       setTotal(r.data.total);
@@ -94,11 +105,21 @@ export default function Companies({ buyerMode = false }) {
       setTotal(0);
       setLoading(false);
     });
-  }, [filters, setSearchParams]);
+  }, [filters, page, setSearchParams]);
 
-  const update = (k, v) => setFilters((f) => ({ ...f, [k]: v }));
-  const resetFilters = () => setFilters(blankFilters);
+  // Debounce free-text search so every keystroke doesn't fire a request.
+  const [searchInput, setSearchInput] = useState(filters.q);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (searchInput !== filters.q) update("q", searchInput);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [searchInput]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const update = (k, v) => { setFilters((f) => ({ ...f, [k]: v })); setPage(1); };
+  const resetFilters = () => { setFilters(blankFilters); setSearchInput(""); setPage(1); };
   const toggleCompare = (id) => setCompared((c) => c.includes(id) ? c.filter(x => x !== id) : [...c, id].slice(0, 5));
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const toggleShortlist = async (company) => {
     if (!user) { navigate("/login"); return; }
@@ -141,19 +162,24 @@ export default function Companies({ buyerMode = false }) {
       filters.legal_type && { key: "legal_type", label: legal?.label || filters.legal_type },
       filters.size && { key: "size", label: filters.size },
       filters.verified && { key: "verified", label: "Doğrulanmış" },
+      filters.sponsored && { key: "sponsored", label: "Sponsorlu" },
       filters.vat_payer && { key: "vat_payer", label: "ƏDV ödəyicisi" },
       filters.min_rating > 0 && { key: "min_rating", label: `${filters.min_rating}+ reytinq` },
     ].filter(Boolean);
   }, [categories, filters]);
 
-  const removeFilter = (key) => update(key, key === "min_rating" ? 0 : key === "verified" || key === "vat_payer" ? false : "");
+  const BOOL_KEYS = ["verified", "sponsored", "vat_payer"];
+  const removeFilter = (key) => {
+    if (key === "q") setSearchInput("");
+    update(key, key === "min_rating" ? 0 : BOOL_KEYS.includes(key) ? false : "");
+  };
 
   const discoveryChips = [
     { label: "Top rated", icon: Star, action: () => update("sort", "rating"), tone: "text-amber-500" },
-    { label: "Fast response", icon: Zap, action: () => update("sort", "sponsored"), tone: "text-blue-500" },
+    { label: "Tövsiyə edilən", icon: Zap, action: () => update("sort", "sponsored"), tone: "text-blue-500" },
     { label: "Verified", icon: ShieldCheck, action: () => update("verified", true), tone: "text-emerald-500" },
     { label: "ƏDV ödəyicisi", icon: ReceiptText, action: () => update("vat_payer", true), tone: "text-slate-600" },
-    { label: "Sponsorlu", icon: Crown, action: () => update("sort", "sponsored"), tone: "text-amber-600" },
+    { label: "Sponsorlu", icon: Crown, action: () => update("sponsored", true), tone: "text-amber-600" },
     { label: "Bakı", icon: MapPin, action: () => update("location", "Bakı"), tone: "text-slate-500" },
     { label: "MMC", icon: Briefcase, action: () => update("legal_type", "llc"), tone: "text-slate-600" },
     { label: "FŞ", icon: Briefcase, action: () => update("legal_type", "sole_proprietor"), tone: "text-slate-600" },
@@ -162,7 +188,7 @@ export default function Companies({ buyerMode = false }) {
   return (
     <div className="min-h-screen bg-slate-50 pb-32">
       <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col items-center px-4 py-8 text-center sm:px-6 lg:px-8">
+        <div className="mx-auto flex flex-col items-center px-4 py-8 text-center sm:px-6 lg:px-8">
           <h1 className="text-3xl font-bold text-slate-950 sm:text-4xl">B2B qərarlarınız üçün doğru məkan</h1>
           <p className="mt-2 max-w-2xl text-slate-600">Doğrulanmış B2B provider-ləri kəşf edin, qarşılaşdırın və ehtiyacınıza uyğun brief göndərin.</p>
 
@@ -170,12 +196,13 @@ export default function Companies({ buyerMode = false }) {
             <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
             <Input
               data-testid="filter-q"
-              value={filters.q}
-              onChange={(e) => update("q", e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && update("q", searchInput)}
               placeholder="Şirkət, xidmət və ya sektor axtarın..."
               className="h-12 rounded-lg border-slate-300 bg-white pl-12 pr-28 shadow-sm focus-visible:ring-blue-500"
             />
-            <Button className="absolute right-1.5 top-1.5 h-9 rounded-md bg-slate-950 px-4 text-white hover:bg-slate-800">
+            <Button onClick={() => update("q", searchInput)} className="absolute right-1.5 top-1.5 h-9 rounded-md bg-slate-950 px-4 text-white hover:bg-slate-800">
               Axtar
             </Button>
           </div>
@@ -196,7 +223,7 @@ export default function Companies({ buyerMode = false }) {
         </div>
       </section>
 
-      <div className="mx-auto flex w-full max-w-7xl flex-col px-4 pt-6 sm:px-6 lg:px-8">
+      <div className="flex w-full flex-col px-4 pt-6 sm:px-6 lg:px-8">
         <div className="mb-6 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {discoveryChips.map(({ label, icon: Icon, action, tone }) => (
             <button
@@ -224,7 +251,7 @@ export default function Companies({ buyerMode = false }) {
               <div className="space-y-5">
                 <FilterGroup title="Status">
                   <CheckRow checked={filters.verified} onCheckedChange={(v) => update("verified", !!v)} label="Doğrulanmış" testId="filter-verified" />
-                  <CheckRow checked={filters.sort === "sponsored"} onCheckedChange={() => update("sort", "sponsored")} label="Sponsorlu" />
+                  <CheckRow checked={filters.sponsored} onCheckedChange={(v) => update("sponsored", !!v)} label="Sponsorlu" testId="filter-sponsored" />
                 </FilterGroup>
 
                 <FilterGroup title="Kateqoriya">
@@ -314,7 +341,27 @@ export default function Companies({ buyerMode = false }) {
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center rounded-lg border border-slate-200 bg-white p-0.5">
+                  <button
+                    type="button"
+                    aria-label="Siyahı görünüşü"
+                    data-testid="view-list"
+                    onClick={() => setViewMode("list")}
+                    className={`flex h-9 w-9 items-center justify-center rounded-md transition-colors ${view === "list" ? "bg-slate-950 text-white" : "text-slate-500 hover:bg-slate-100"}`}
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Grid görünüşü"
+                    data-testid="view-grid"
+                    onClick={() => setViewMode("grid")}
+                    className={`flex h-9 w-9 items-center justify-center rounded-md transition-colors ${view === "grid" ? "bg-slate-950 text-white" : "text-slate-500 hover:bg-slate-100"}`}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </button>
+                </div>
                 <span className="text-sm text-slate-500">Sırala:</span>
                 <Select value={filters.sort} onValueChange={(v) => update("sort", v)}>
                   <SelectTrigger data-testid="sort-select" className="h-10 w-48 rounded-lg bg-white"><SelectValue /></SelectTrigger>
@@ -329,48 +376,69 @@ export default function Companies({ buyerMode = false }) {
             </div>
 
             {loading ? (
-              <div className="flex flex-col gap-5">
-                {[...Array(4)].map((_, i) => (
+              <div className={view === "grid" ? "grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-5"}>
+                {[...Array(view === "grid" ? 6 : 4)].map((_, i) => (
                   <div key={i} className="h-72 animate-pulse rounded-lg border border-slate-200 bg-white" />
                 ))}
               </div>
-            ) : (
-              <div className="flex flex-col gap-5">
-                {companies.flatMap((c, idx) => {
-                  const out = [
-                    <CompanyCard
-                      key={c.id}
-                      company={c}
-                      variant="list"
-                      showCompare
-                      compared={compared.includes(c.id)}
-                      onCompare={() => toggleCompare(c.id)}
-                      isShortlisted={shortlistIds.includes(c.id)}
-                      onShortlist={() => toggleShortlist(c)}
-                      onBrief={() => openBrief(c)}
-                      buyerMode={buyerMode}
-                      returnTo={returnTo}
-                    />
-                  ];
-                  if ((idx + 1) % 6 === 0 && inlineAds[Math.floor(idx / 6) % inlineAds.length]) {
-                    out.push(<InlineAdCard key={`ad-${idx}`} ad={inlineAds[Math.floor(idx / 6) % inlineAds.length]} />);
-                  }
-                  return out;
-                })}
+            ) : companies.length === 0 ? (
+              <div className="rounded-lg border border-slate-200 bg-white p-12 text-center text-slate-500">
+                Heç bir şirkət tapılmadı. Filtrləri yumşaldın və ya başqa açar söz yoxlayın.
+                <div className="mt-3">
+                  <Button variant="outline" onClick={resetFilters} className="rounded-lg">Filtrləri sıfırla</Button>
+                </div>
               </div>
+            ) : (
+              <>
+                <div className={view === "grid" ? "grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-5"}>
+                  {companies.flatMap((c, idx) => {
+                    const out = [
+                      <CompanyCard
+                        key={c.id}
+                        company={c}
+                        variant={view === "grid" ? "compact" : "list"}
+                        showCompare
+                        compared={compared.includes(c.id)}
+                        onCompare={() => toggleCompare(c.id)}
+                        isShortlisted={shortlistIds.includes(c.id)}
+                        onShortlist={() => toggleShortlist(c)}
+                        onBrief={() => openBrief(c)}
+                        buyerMode={buyerMode}
+                        returnTo={returnTo}
+                      />
+                    ];
+                    if ((idx + 1) % 6 === 0 && inlineAds[Math.floor(idx / 6) % inlineAds.length]) {
+                      out.push(
+                        <div key={`ad-${idx}`} className={view === "grid" ? "sm:col-span-2 xl:col-span-3" : ""}>
+                          <InlineAdCard ad={inlineAds[Math.floor(idx / 6) % inlineAds.length]} />
+                        </div>
+                      );
+                    }
+                    return out;
+                  })}
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="mt-8 flex items-center justify-center gap-2">
+                    <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => { setPage((p) => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="rounded-lg">Əvvəlki</Button>
+                    <span className="px-3 text-sm text-slate-600">Səhifə {page} / {totalPages}</span>
+                    <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => { setPage((p) => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="rounded-lg">Növbəti</Button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
       </div>
 
       {compared.length > 0 && (
-        <div className="fixed bottom-4 left-1/2 z-40 hidden w-[min(720px,calc(100vw-32px))] -translate-x-1/2 rounded-lg border border-slate-200 bg-white/95 p-3 shadow-[0_12px_40px_rgba(15,23,42,0.16)] backdrop-blur md:block">
+        <div className="fixed bottom-4 left-1/2 z-40 w-[min(720px,calc(100vw-32px))] -translate-x-1/2 rounded-lg border border-slate-200 bg-white/95 p-3 shadow-[0_12px_40px_rgba(15,23,42,0.16)] backdrop-blur">
           <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex -space-x-2">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="hidden -space-x-2 sm:flex">
                 {comparedCompanies.slice(0, 5).map((company) => (
                   company.logo_url ? (
-                    <img key={company.id} src={company.logo_url} alt="" className="h-10 w-10 rounded-full border-2 border-white object-cover" />
+                    <img key={company.id} src={company.logo_url} alt={company.name} className="h-10 w-10 rounded-full border-2 border-white object-cover" />
                   ) : (
                     <div key={company.id} className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-slate-900 text-xs font-bold text-white">
                       {company.name?.[0]}
@@ -378,12 +446,12 @@ export default function Companies({ buyerMode = false }) {
                   )
                 ))}
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="text-sm font-semibold text-slate-950">{compared.length} şirkət qarşılaşdırma üçün seçilib</div>
-                <div className="text-xs text-slate-500">Maksimum 5 şirkət seçilə bilər</div>
+                <div className="hidden text-xs text-slate-500 sm:block">Maksimum 5 şirkət seçilə bilər</div>
               </div>
             </div>
-            <Button asChild className="rounded-lg bg-blue-600 hover:bg-blue-700">
+            <Button asChild className="shrink-0 rounded-lg bg-blue-600 hover:bg-blue-700">
               <Link to={`/buyer/compare?type=company&ids=${compared.join(",")}`} state={{ type: "company", ids: compared }} data-testid="compare-btn">
                 <GitCompare className="mr-2 h-4 w-4" />
                 Qarşılaşdır

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Mail, Phone, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import api from "@/lib/api";
@@ -48,29 +49,44 @@ export default function Contact() {
         </div>
       ) : (
         <form onSubmit={submit} className="bg-white border border-slate-200 rounded-2xl p-6 space-y-3">
-          <Input
-            placeholder="Ad"
-            required
-            value={form.name}
-            onChange={(e) => setForm((c) => ({ ...c, name: e.target.value }))}
-            data-testid="contact-name"
-          />
-          <Input
-            type="email"
-            placeholder="Email"
-            required
-            value={form.email}
-            onChange={(e) => setForm((c) => ({ ...c, email: e.target.value }))}
-            data-testid="contact-email"
-          />
-          <Textarea
-            placeholder="Mesaj"
-            rows={5}
-            required
-            value={form.message}
-            onChange={(e) => setForm((c) => ({ ...c, message: e.target.value }))}
-            data-testid="contact-message"
-          />
+          <div>
+            <Label htmlFor="contact-name-input">Ad</Label>
+            <Input
+              id="contact-name-input"
+              placeholder="Ad"
+              required
+              value={form.name}
+              onChange={(e) => setForm((c) => ({ ...c, name: e.target.value }))}
+              className="mt-1"
+              data-testid="contact-name"
+            />
+          </div>
+          <div>
+            <Label htmlFor="contact-email-input">Email</Label>
+            <Input
+              id="contact-email-input"
+              type="email"
+              placeholder="Email"
+              required
+              value={form.email}
+              onChange={(e) => setForm((c) => ({ ...c, email: e.target.value }))}
+              className="mt-1"
+              data-testid="contact-email"
+            />
+          </div>
+          <div>
+            <Label htmlFor="contact-message-input">Mesaj</Label>
+            <Textarea
+              id="contact-message-input"
+              placeholder="Mesaj"
+              rows={5}
+              required
+              value={form.message}
+              onChange={(e) => setForm((c) => ({ ...c, message: e.target.value }))}
+              className="mt-1"
+              data-testid="contact-message"
+            />
+          </div>
           <Button type="submit" disabled={sending} className="w-full bg-blue-600 hover:bg-blue-700" data-testid="contact-submit">
             {sending ? "Göndərilir..." : "Göndər"}
           </Button>

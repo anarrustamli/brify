@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PageHeader } from "@/components/shared/Common";
+import { PageHeader, PlanLimitBanner } from "@/components/shared/Common";
 import Breadcrumbs from "@/components/shared/Breadcrumbs";
+import usePlanLimit from "@/hooks/usePlanLimit";
 import { toast } from "sonner";
 
 const blank = {
@@ -24,6 +25,7 @@ export default function PortfolioForm() {
   const [galleryInput, setGalleryInput] = useState("");
   const [sectors, setSectors] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { limitReached, limit, planName } = usePlanLimit("portfolio", { skip: editing });
 
   useEffect(() => {
     api.get("/sectors").then((r) => setSectors(r.data || [])).catch(() => setSectors([]));
@@ -65,6 +67,8 @@ export default function PortfolioForm() {
         { label: editing ? "Redaktə et" : "Yeni" },
       ]} />
       <PageHeader title={editing ? "Portfolio redaktə et" : "Yeni portfolio əlavə et"} />
+
+      {!editing && limitReached && <PlanLimitBanner resourceLabel="portfolio" limit={limit} planName={planName} />}
 
       <form onSubmit={submit} className="space-y-6">
         <section className="bg-white border border-slate-200 rounded-xl p-6">
@@ -115,7 +119,7 @@ export default function PortfolioForm() {
         </section>
 
         <div className="flex gap-3">
-          <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 h-11 px-6" data-testid="pf-submit">{loading ? "Yadda saxlanır..." : editing ? "Yenilə" : "Yarat"}</Button>
+          <Button type="submit" disabled={loading || (!editing && limitReached)} className="bg-blue-600 hover:bg-blue-700 h-11 px-6" data-testid="pf-submit">{loading ? "Yadda saxlanır..." : editing ? "Yenilə" : "Yarat"}</Button>
           <Button type="button" variant="outline" asChild className="h-11"><Link to="/provider/portfolio">Ləğv et</Link></Button>
         </div>
       </form>

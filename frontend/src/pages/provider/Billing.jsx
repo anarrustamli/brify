@@ -24,6 +24,13 @@ export default function Billing() {
     toast.success("Plan dəyişikliyi sorğusu adminə göndərildi");
   };
 
+  const latestSubscription = billing.subscriptions?.[0];
+  const billingStatusLine = !latestSubscription
+    ? (company?.plan === "free" || !company?.plan ? "Hazırda ödənişli abunəlik yoxdur" : "Abunəlik məlumatı yoxdur")
+    : latestSubscription.status === "active"
+      ? `Aktivləşdirilib: ${new Date(latestSubscription.updated_at || latestSubscription.created_at).toLocaleDateString("az-AZ")}`
+      : `"${latestSubscription.plan}" planına keçid sorğusu göndərilib: ${new Date(latestSubscription.created_at).toLocaleDateString("az-AZ")} (${latestSubscription.status})`;
+
   return (
     <div>
       <PageHeader title="Abunəlik və Faktura" description={`Mövcud plan: ${company?.plan || "free"}`} />
@@ -33,7 +40,7 @@ export default function Billing() {
           <div>
             <div className="text-sm opacity-90">Mövcud plan</div>
             <div className="text-3xl font-bold tracking-tight mt-1 capitalize">{company?.plan || "Free"}</div>
-            <div className="text-sm opacity-90 mt-1">Növbəti ödəniş: 28 Fev, 2026</div>
+            <div className="text-sm opacity-90 mt-1">{billingStatusLine}</div>
           </div>
           <CreditCard className="w-12 h-12 opacity-50" />
         </div>

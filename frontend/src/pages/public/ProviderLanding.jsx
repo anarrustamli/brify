@@ -1,12 +1,24 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Building2, TrendingUp, Shield, Users } from "lucide-react";
+import { Building2, FileText, Shield, Users } from "lucide-react";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 
 export default function ProviderLanding() {
   const [content, setContent] = useState(null);
-  useEffect(() => { api.get("/content/provider-landing").then((r) => setContent(r.data)).catch(() => {}); }, []);
+  const [stats, setStats] = useState(null);
+  useEffect(() => {
+    api.get("/content/provider-landing").then((r) => setContent(r.data)).catch(() => {});
+    api.get("/stats/public").then((r) => setStats(r.data)).catch(() => {});
+  }, []);
+
+  const statCards = [
+    { i: Users, n: stats ? `${stats.active_buyers}+` : "—", l: "Aktiv alıcı" },
+    { i: FileText, n: stats ? `${stats.total_briefs}+` : "—", l: "Göndərilən brief" },
+    { i: Building2, n: stats ? `${stats.active_providers}+` : "—", l: "Provider şirkət" },
+    { i: Shield, n: stats?.avg_rating ? `${stats.avg_rating}/5` : "—", l: "Müştəri reytinqi" },
+  ];
+
   return (
     <div>
       <section className="bg-gradient-to-br from-blue-50 via-white to-emerald-50 py-20">
@@ -30,12 +42,7 @@ export default function ProviderLanding() {
           </div>
           <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-lg">
             <div className="grid grid-cols-2 gap-6">
-              {[
-                { i: Users, n: "10,000+", l: "Aktiv alıcı" },
-                { i: TrendingUp, n: "240%", l: "Orta gəlir artımı" },
-                { i: Building2, n: "500+", l: "Provider şirkət" },
-                { i: Shield, n: "4.8/5", l: "Müştəri reytinqi" },
-              ].map((s) => (
+              {statCards.map((s) => (
                 <div key={s.l}>
                   <s.i className="w-6 h-6 text-emerald-600" />
                   <div className="text-3xl font-bold text-slate-900 mt-3">{s.n}</div>

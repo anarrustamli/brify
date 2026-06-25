@@ -10,6 +10,9 @@ import uuid
 import bcrypt
 import jwt
 import re
+import smtplib
+import ssl
+from email.mime.text import MIMEText
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 
@@ -97,6 +100,7 @@ ADMIN_RESOURCES = {
     "faqs": {"collection": "faqs", "module": "content", "search": ["question", "answer", "category"]},
     "media-assets": {"collection": "media_assets", "module": "media", "search": ["id", "name", "module", "entity_id", "mime"]},
     "admin-roles": {"collection": "admin_roles", "module": "roles", "search": ["name", "key", "description"]},
+    "ad-placements": {"collection": "ad_placements", "module": "ads", "search": ["title", "description"]},
 }
 
 
@@ -137,6 +141,8 @@ async def get_current_user(request: Request) -> dict:
         user = await db.users.find_one({"id": payload["sub"]})
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
+        if user.get("status") in ("deleted", "suspended"):
+            raise HTTPException(status_code=401, detail="Account deleted or suspended")
         user.pop("password_hash", None)
         user.pop("_id", None)
         return user
@@ -306,6 +312,7 @@ def _allowed_media_exts_for_module(module: str):
     image_exts = {".png", ".jpg", ".jpeg", ".webp", ".svg"}
     doc_exts = {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip"}
     module_map = {
+        "avatar": image_exts,
         "company-logo": image_exts,
         "company-cover": image_exts,
         "portfolio-image": image_exts,
@@ -466,9 +473,75 @@ async def register(payload: RegisterIn, response: Response):
             "location": "Bakı", "created_at": now_iso(),
         })
 
+    await _create_email_verification(user_id, email)
+
     token = create_access_token(user_id, email, payload.role)
     set_auth_cookie(response, token)
     return {"token": token, "user": clean_doc(user_doc)}
+
+
+async def _send_email(to_email: str, subject: str, body: str) -> bool:
+    """Send via the admin-configured SMTP integration. Returns False (caller should
+    fall back to logging the content) if SMTP isn't configured or sending fails."""
+    smtp = await db.integrations.find_one({"key": "smtp"}, {"_id": 0})
+    cfg = (smtp or {}).get("secrets") or {}
+    if not smtp or not smtp.get("configured") or not cfg.get("host") or not cfg.get("username"):
+        return False
+    try:
+        msg = MIMEText(body, "html", "utf-8")
+        msg["Subject"] = subject
+        msg["From"] = cfg.get("from_email") or cfg["username"]
+        msg["To"] = to_email
+        port = int(cfg.get("port") or 587)
+        with smtplib.SMTP(cfg["host"], port, timeout=10) as server:
+            if cfg.get("use_tls", True):
+                server.starttls(context=ssl.create_default_context())
+            server.login(cfg["username"], cfg.get("password") or "")
+            server.sendmail(msg["From"], [to_email], msg.as_string())
+        return True
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"SMTP send failed for {to_email}: {e}")
+        return False
+
+
+async def _create_email_verification(user_id: str, email: str):
+    token = new_id()
+    await db.email_verifications.insert_one({
+        "id": new_id(),
+        "token": token,
+        "user_id": user_id,
+        "email": email,
+        "used": False,
+        "expires_at": (datetime.now(timezone.utc) + timedelta(hours=48)).isoformat(),
+        "created_at": now_iso(),
+    })
+    link = f"/verify-email?token={token}"
+    sent = await _send_email(email, "Email ünvanınızı təsdiqləyin", f"<p>Hesabınızı təsdiqləmək üçün <a href='{link}'>bu linkə</a> klikləyin.</p>")
+    if not sent:
+        # SMTP not configured (or send failed) — log the link so the flow stays testable.
+        logging.getLogger(__name__).info(f"Email verification requested for {email}: {link}")
+
+
+class VerifyEmailIn(BaseModel):
+    token: str
+
+
+@api_router.post("/auth/verify-email")
+async def verify_email(payload: VerifyEmailIn):
+    record = await db.email_verifications.find_one({"token": payload.token, "used": False}, {"_id": 0})
+    if not record or record.get("expires_at", "") < now_iso():
+        raise HTTPException(400, "Təsdiq linki etibarsızdır və ya vaxtı bitib")
+    await db.users.update_one({"id": record["user_id"]}, {"$set": {"verified": True, "updated_at": now_iso()}})
+    await db.email_verifications.update_one({"token": payload.token}, {"$set": {"used": True, "used_at": now_iso()}})
+    return {"ok": True}
+
+
+@api_router.post("/auth/resend-verification")
+async def resend_verification(user: dict = Depends(get_current_user)):
+    if user.get("verified"):
+        return {"ok": True, "already_verified": True}
+    await _create_email_verification(user["id"], user["email"])
+    return {"ok": True}
 
 
 @api_router.post("/auth/login")
@@ -477,6 +550,8 @@ async def login(payload: LoginIn, response: Response):
     user = await db.users.find_one({"email": email})
     if not user or not verify_password(payload.password, user.get("password_hash", "")):
         raise HTTPException(401, "Email və ya şifrə yanlışdır")
+    if user.get("status") in ("suspended", "deleted"):
+        raise HTTPException(403, "Hesabınız dayandırılıb. Dəstək ilə əlaqə saxlayın.")
     token = create_access_token(user["id"], user["email"], user["role"])
     set_auth_cookie(response, token)
     return {"token": token, "user": clean_doc(user)}
@@ -484,6 +559,10 @@ async def login(payload: LoginIn, response: Response):
 
 @api_router.post("/auth/demo-login")
 async def demo_login(payload: DemoLoginIn, response: Response):
+    # Lets anyone become buyer/provider/admin with no password — fine for a sandboxed
+    # demo, a backdoor in production. Must be explicitly disabled there.
+    if os.environ.get("ALLOW_DEMO_LOGIN", "true").lower() != "true":
+        raise HTTPException(404, "Not found")
     mapping = {
         "buyer": os.environ.get("DEMO_BUYER_EMAIL", "buyer@bizmarket.az"),
         "provider": os.environ.get("DEMO_PROVIDER_EMAIL", "provider@bizmarket.az"),
@@ -510,9 +589,10 @@ async def logout(response: Response):
 async def forgot_password(payload: ForgotPasswordIn):
     email = payload.email.lower().strip()
     user = await db.users.find_one({"email": email, "deleted_at": {"$exists": False}}, {"_id": 0})
-    # Always return ok to avoid account enumeration; local/dev includes token for testable flow.
+    # Always return the same response regardless of whether the account exists,
+    # to avoid leaking which emails are registered (account enumeration).
     if not user:
-        return {"ok": True, "reset_token": ""}
+        return {"ok": True}
     token = new_id()
     doc = {
         "id": new_id(),
@@ -524,7 +604,13 @@ async def forgot_password(payload: ForgotPasswordIn):
         "created_at": now_iso(),
     }
     await db.password_resets.insert_one(doc)
-    return {"ok": True, "reset_token": token}
+    link = f"/reset-password?token={token}"
+    # Never put the token in the API response, where any caller could read it —
+    # send it by email (if SMTP is configured) or log it server-side as a fallback.
+    sent = await _send_email(email, "Şifrə bərpası", f"<p>Şifrənizi bərpa etmək üçün <a href='{link}'>bu linkə</a> klikləyin. Link 1 saat etibarlıdır.</p>")
+    if not sent:
+        logging.getLogger(__name__).info(f"Password reset requested for {email}: {link}")
+    return {"ok": True}
 
 
 @api_router.post("/auth/reset-password")
@@ -544,9 +630,38 @@ async def me(user: dict = Depends(get_current_user)):
     return user
 
 
+DEFAULT_NOTIFICATION_PREFS = {
+    "brief_viewed": True,
+    "new_proposal": True,
+    "new_message": True,
+    "platform_updates": False,
+}
+
+
+@api_router.get("/me/notification-preferences")
+async def get_notification_preferences(user: dict = Depends(get_current_user)):
+    return {**DEFAULT_NOTIFICATION_PREFS, **(user.get("notification_prefs") or {})}
+
+
+@api_router.put("/me/notification-preferences")
+async def update_notification_preferences(body: dict, user: dict = Depends(get_current_user)):
+    prefs = {**DEFAULT_NOTIFICATION_PREFS, **(user.get("notification_prefs") or {}), **{k: bool(v) for k, v in body.items() if k in DEFAULT_NOTIFICATION_PREFS}}
+    await db.users.update_one({"id": user["id"]}, {"$set": {"notification_prefs": prefs, "updated_at": now_iso()}})
+    return prefs
+
+
+@api_router.delete("/me/account")
+async def delete_my_account(response: Response, user: dict = Depends(get_current_user)):
+    await db.users.update_one({"id": user["id"]}, {"$set": {
+        "status": "deleted", "deleted_at": now_iso(), "deleted_by": user["id"], "updated_at": now_iso(),
+    }})
+    response.delete_cookie("access_token", path="/")
+    return {"ok": True}
+
+
 @api_router.put("/me/user")
 async def update_my_profile(body: dict, user: dict = Depends(get_current_user)):
-    allowed = {"name", "phone"}
+    allowed = {"name", "phone", "avatar_url"}
     update = {k: v for k, v in body.items() if k in allowed}
     if not update:
         raise HTTPException(400, "Nothing to update")
@@ -707,11 +822,15 @@ async def list_companies(
     q: Optional[str] = None, category: Optional[str] = None, location: Optional[str] = None,
     verified: Optional[bool] = None, min_rating: Optional[float] = None, size: Optional[str] = None,
     industry: Optional[str] = None, sector: Optional[str] = None, legal_type: Optional[str] = None,
-    vat_payer: Optional[bool] = None, sort: Optional[str] = "sponsored", page: int = 1, limit: int = 12,
+    vat_payer: Optional[bool] = None, sponsored: Optional[bool] = None,
+    sort: Optional[str] = "sponsored", page: int = 1, limit: int = 12,
 ):
     query = {"status": "active", "deleted_at": {"$exists": False}}
     if q:
-        query["name"] = {"$regex": q, "$options": "i"}
+        regex = {"$regex": q, "$options": "i"}
+        # Search across name, slogan and category/industry tags, not just the name —
+        # the search box promises "company, service or sector" matches.
+        query["$or"] = [{"name": regex}, {"slogan": regex}, {"categories": regex}, {"industries": regex}]
     if category:
         query["categories"] = category
     if location:
@@ -728,6 +847,8 @@ async def list_companies(
         query["legal_type"] = legal_type
     if vat_payer is not None:
         query["vat_payer"] = vat_payer
+    if sponsored is not None:
+        query["sponsored"] = sponsored
 
     sort_map = {
         "rating": [("rating", -1)],
@@ -849,7 +970,8 @@ async def list_services(
 ):
     query = {"status": "active"}
     if q:
-        query["name"] = {"$regex": q, "$options": "i"}
+        regex = {"$regex": q, "$options": "i"}
+        query["$or"] = [{"name": regex}, {"description": regex}, {"category": regex}, {"company_name": regex}]
     if category:
         query["category"] = category
     if sponsored is not None:
@@ -948,14 +1070,14 @@ async def create_service(payload: ServiceIn, user: dict = Depends(require_role("
 @api_router.put("/me/services/{sid}")
 async def update_service(sid: str, payload: ServiceIn, user: dict = Depends(require_role("provider"))):
     company = await db.companies.find_one({"owner_id": user["id"]})
-    await db.services.update_one({"id": sid, "company_id": company["id"]}, {"$set": payload.dict()})
+    await _update_one_or_404("services", {"id": sid, "company_id": company["id"]}, payload.dict(), "Service not found")
     return {"ok": True}
 
 
 @api_router.delete("/me/services/{sid}")
 async def delete_service(sid: str, user: dict = Depends(require_role("provider"))):
     company = await db.companies.find_one({"owner_id": user["id"]})
-    await db.services.delete_one({"id": sid, "company_id": company["id"]})
+    await _delete_one_or_404("services", {"id": sid, "company_id": company["id"]}, "Service not found")
     return {"ok": True}
 
 
@@ -1056,7 +1178,7 @@ async def create_portfolio(payload: PortfolioIn, user: dict = Depends(require_ro
 @api_router.delete("/me/portfolio/{pid}")
 async def delete_portfolio(pid: str, user: dict = Depends(require_role("provider"))):
     company = await db.companies.find_one({"owner_id": user["id"]})
-    await db.portfolio.delete_one({"id": pid, "company_id": company["id"]})
+    await _delete_one_or_404("portfolio", {"id": pid, "company_id": company["id"]}, "Portfolio item not found")
     return {"ok": True}
 
 
@@ -1097,6 +1219,18 @@ def _limit_or_unlimited(plan: dict, key: str) -> Optional[int]:
     return int(v)
 
 
+async def _update_one_or_404(collection, query: dict, update: dict, not_found_msg: str = "Not found"):
+    result = await db[collection].update_one(query, {"$set": update})
+    if result.matched_count == 0:
+        raise HTTPException(404, not_found_msg)
+
+
+async def _delete_one_or_404(collection, query: dict, not_found_msg: str = "Not found"):
+    result = await db[collection].delete_one(query)
+    if result.deleted_count == 0:
+        raise HTTPException(404, not_found_msg)
+
+
 async def _check_plan_limit(company: dict, key: str, current_count: int):
     # Per-company custom override beats plan
     custom = (company or {}).get("custom_limits") or {}
@@ -1126,7 +1260,7 @@ async def get_my_portfolio_item(pid: str, user: dict = Depends(require_role("pro
 @api_router.put("/me/portfolio/{pid}")
 async def update_portfolio(pid: str, payload: PortfolioIn, user: dict = Depends(require_role("provider"))):
     company = await db.companies.find_one({"owner_id": user["id"]})
-    await db.portfolio.update_one({"id": pid, "company_id": company["id"]}, {"$set": payload.dict()})
+    await _update_one_or_404("portfolio", {"id": pid, "company_id": company["id"]}, payload.dict(), "Portfolio item not found")
     return {"ok": True}
 
 
@@ -1175,6 +1309,8 @@ async def get_case_study(cid: str, user: dict = Depends(require_role("provider")
 @api_router.post("/me/case-studies")
 async def create_case_study(payload: CaseStudyIn, user: dict = Depends(require_role("provider"))):
     company = await db.companies.find_one({"owner_id": user["id"]})
+    current = await db.case_studies.count_documents({"company_id": company["id"]})
+    await _check_plan_limit(company, "case_studies", current)
     doc = {"id": new_id(), "company_id": company["id"], "created_at": now_iso(), **payload.dict()}
     await db.case_studies.insert_one(doc)
     doc.pop("_id", None)
@@ -1184,14 +1320,14 @@ async def create_case_study(payload: CaseStudyIn, user: dict = Depends(require_r
 @api_router.put("/me/case-studies/{cid}")
 async def update_case_study(cid: str, payload: CaseStudyIn, user: dict = Depends(require_role("provider"))):
     company = await db.companies.find_one({"owner_id": user["id"]})
-    await db.case_studies.update_one({"id": cid, "company_id": company["id"]}, {"$set": payload.dict()})
+    await _update_one_or_404("case_studies", {"id": cid, "company_id": company["id"]}, payload.dict(), "Case study not found")
     return {"ok": True}
 
 
 @api_router.delete("/me/case-studies/{cid}")
 async def delete_case_study(cid: str, user: dict = Depends(require_role("provider"))):
     company = await db.companies.find_one({"owner_id": user["id"]})
-    await db.case_studies.delete_one({"id": cid, "company_id": company["id"]})
+    await _delete_one_or_404("case_studies", {"id": cid, "company_id": company["id"]}, "Case study not found")
     return {"ok": True}
 
 
@@ -1226,6 +1362,8 @@ async def get_team_member(tid: str, user: dict = Depends(require_role("provider"
 @api_router.post("/me/team")
 async def create_team_member(payload: TeamMemberIn, user: dict = Depends(require_role("provider"))):
     company = await db.companies.find_one({"owner_id": user["id"]})
+    current = await db.team_members.count_documents({"company_id": company["id"]})
+    await _check_plan_limit(company, "team", current)
     doc = {"id": new_id(), "company_id": company["id"], "created_at": now_iso(), **payload.dict()}
     await db.team_members.insert_one(doc)
     doc.pop("_id", None)
@@ -1235,14 +1373,14 @@ async def create_team_member(payload: TeamMemberIn, user: dict = Depends(require
 @api_router.put("/me/team/{tid}")
 async def update_team_member(tid: str, payload: TeamMemberIn, user: dict = Depends(require_role("provider"))):
     company = await db.companies.find_one({"owner_id": user["id"]})
-    await db.team_members.update_one({"id": tid, "company_id": company["id"]}, {"$set": payload.dict()})
+    await _update_one_or_404("team_members", {"id": tid, "company_id": company["id"]}, payload.dict(), "Team member not found")
     return {"ok": True}
 
 
 @api_router.delete("/me/team/{tid}")
 async def delete_team_member(tid: str, user: dict = Depends(require_role("provider"))):
     company = await db.companies.find_one({"owner_id": user["id"]})
-    await db.team_members.delete_one({"id": tid, "company_id": company["id"]})
+    await _delete_one_or_404("team_members", {"id": tid, "company_id": company["id"]}, "Team member not found")
     return {"ok": True}
 
 
@@ -1266,6 +1404,8 @@ async def my_certificates(user: dict = Depends(require_role("provider"))):
 @api_router.post("/me/certificates")
 async def create_certificate(payload: CertificateIn, user: dict = Depends(require_role("provider"))):
     company = await db.companies.find_one({"owner_id": user["id"]})
+    current = await db.certificates.count_documents({"company_id": company["id"]})
+    await _check_plan_limit(company, "certifications", current)
     doc = {"id": new_id(), "company_id": company["id"], "status": "active", **payload.dict()}
     await db.certificates.insert_one(doc)
     doc.pop("_id", None)
@@ -1275,7 +1415,7 @@ async def create_certificate(payload: CertificateIn, user: dict = Depends(requir
 @api_router.delete("/me/certificates/{cid}")
 async def delete_certificate(cid: str, user: dict = Depends(require_role("provider"))):
     company = await db.companies.find_one({"owner_id": user["id"]})
-    await db.certificates.delete_one({"id": cid, "company_id": company["id"]})
+    await _delete_one_or_404("certificates", {"id": cid, "company_id": company["id"]}, "Certificate not found")
     return {"ok": True}
 
 
@@ -1298,6 +1438,8 @@ async def my_awards(user: dict = Depends(require_role("provider"))):
 @api_router.post("/me/awards")
 async def create_award(payload: AwardIn, user: dict = Depends(require_role("provider"))):
     company = await db.companies.find_one({"owner_id": user["id"]})
+    current = await db.awards.count_documents({"company_id": company["id"]})
+    await _check_plan_limit(company, "awards", current)
     doc = {"id": new_id(), "company_id": company["id"], **payload.dict()}
     await db.awards.insert_one(doc)
     doc.pop("_id", None)
@@ -1307,7 +1449,7 @@ async def create_award(payload: AwardIn, user: dict = Depends(require_role("prov
 @api_router.delete("/me/awards/{aid}")
 async def delete_award(aid: str, user: dict = Depends(require_role("provider"))):
     company = await db.companies.find_one({"owner_id": user["id"]})
-    await db.awards.delete_one({"id": aid, "company_id": company["id"]})
+    await _delete_one_or_404("awards", {"id": aid, "company_id": company["id"]}, "Award not found")
     return {"ok": True}
 
 
@@ -1342,18 +1484,23 @@ class BriefIn(BaseModel):
     additional_note: Optional[str] = ""
     visibility: Optional[str] = "open"
     invited_companies: Optional[List[str]] = []
+    status: Optional[str] = "open"
 
 
 @api_router.post("/briefs")
 async def create_brief(payload: BriefIn, user: dict = Depends(require_role("buyer"))):
+    data = payload.dict()
+    status = data.pop("status", "open")
+    if status not in ("open", "draft"):
+        status = "open"
     doc = {
         "id": new_id(), "buyer_id": user["id"], "buyer_name": user["name"],
-        "status": "open", "proposals_count": 0, "created_at": now_iso(),
-        **payload.dict(),
+        "status": status, "proposals_count": 0, "created_at": now_iso(),
+        **data,
     }
     await db.briefs.insert_one(doc)
     doc.pop("_id", None)
-    if payload.invited_companies:
+    if status != "draft" and payload.invited_companies:
         for cid in payload.invited_companies:
             await invite_company_to_brief(doc, cid, user)
     return doc
@@ -1379,6 +1526,8 @@ async def update_brief(bid: str, payload: BriefIn, user: dict = Depends(require_
     edited_at = now_iso()
     update_doc = payload.dict()
     update_doc.pop("invited_companies", None)
+    if update_doc.get("status") not in ("open", "draft"):
+        update_doc["status"] = brief.get("status", "open")
     update_doc.update({
         "updated_at": edited_at,
         "edited_at": edited_at,
@@ -1424,6 +1573,8 @@ async def get_brief(bid: str, user: dict = Depends(get_current_user)):
     brief = await db.briefs.find_one({"id": bid}, {"_id": 0})
     if not brief:
         raise HTTPException(404, "Brief not found")
+    if brief.get("buyer_id") != user.get("id"):
+        raise HTTPException(403, "Forbidden")
     proposals = await db.proposals.find({"brief_id": bid}, {"_id": 0}).to_list(100)
     attachments = []
     try:
@@ -1584,6 +1735,9 @@ async def update_proposal_status(pid: str, body: dict, user: dict = Depends(get_
     proposal = await db.proposals.find_one({"id": pid}, {"_id": 0})
     if not proposal:
         raise HTTPException(404, "Proposal not found")
+    brief = await db.briefs.find_one({"id": proposal.get("brief_id")}, {"_id": 0, "buyer_id": 1})
+    if not brief or brief.get("buyer_id") != user.get("id"):
+        raise HTTPException(403, "Forbidden")
     await db.proposals.update_one({"id": pid}, {"$set": {"status": status}})
     # Notify provider when buyer accepts/rejects
     if status in ("accepted", "rejected") and proposal.get("company_id"):
@@ -1898,7 +2052,59 @@ async def create_review(payload: ReviewIn, user: dict = Depends(require_role("bu
 # ------- Messages -------
 @api_router.get("/me/messages")
 async def my_messages(user: dict = Depends(get_current_user)):
-    return await db.message_threads.find({"participants": user["id"]}, {"_id": 0}).sort("updated_at", -1).to_list(200)
+    blocked = {b["blocked_id"] for b in await db.blocked_users.find({"user_id": user["id"]}, {"_id": 0}).to_list(500)}
+    threads = await db.message_threads.find({"participants": user["id"]}, {"_id": 0}).sort("updated_at", -1).to_list(200)
+    if not blocked:
+        return threads
+    return [t for t in threads if not (set(t.get("participants", [])) & blocked)]
+
+
+@api_router.get("/me/blocked-users")
+async def list_blocked_users(user: dict = Depends(get_current_user)):
+    return await db.blocked_users.find({"user_id": user["id"]}, {"_id": 0}).to_list(500)
+
+
+@api_router.post("/me/blocked-users")
+async def block_user(body: dict, user: dict = Depends(get_current_user)):
+    blocked_id = body.get("user_id")
+    if not blocked_id:
+        raise HTTPException(400, "user_id is required")
+    await db.blocked_users.update_one(
+        {"user_id": user["id"], "blocked_id": blocked_id},
+        {"$set": {"id": new_id(), "user_id": user["id"], "blocked_id": blocked_id, "created_at": now_iso()}},
+        upsert=True,
+    )
+    return {"ok": True}
+
+
+@api_router.delete("/me/blocked-users/{blocked_id}")
+async def unblock_user(blocked_id: str, user: dict = Depends(get_current_user)):
+    await db.blocked_users.delete_one({"user_id": user["id"], "blocked_id": blocked_id})
+    return {"ok": True}
+
+
+class ReportIn(BaseModel):
+    target_user_id: str
+    thread_id: Optional[str] = ""
+    reason: str
+
+
+@api_router.post("/reports")
+async def create_report(payload: ReportIn, user: dict = Depends(get_current_user)):
+    doc = {
+        "id": new_id(),
+        "title": f"İstifadəçi şikayəti: {user.get('name', user['id'])}",
+        "reason": payload.reason,
+        "reporter_id": user["id"],
+        "target_user_id": payload.target_user_id,
+        "thread_id": payload.thread_id,
+        "entity_type": "user",
+        "status": "new",
+        "created_at": now_iso(),
+    }
+    await db.reports.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
 
 
 @api_router.get("/messages/{tid}")
@@ -1938,8 +2144,13 @@ async def send_message(payload: MessageIn, user: dict = Depends(get_current_user
             tid = existing["id"]
         else:
             tid = new_id()
+            recipient = await db.users.find_one({"id": payload.recipient_id}, {"_id": 0, "name": 1, "role": 1})
+            recipient_name = (recipient or {}).get("name", "")
+            buyer_name = user["name"] if user.get("role") == "buyer" else recipient_name
+            provider_name = recipient_name if user.get("role") == "buyer" else user["name"]
             await db.message_threads.insert_one({
                 "id": tid, "participants": [user["id"], payload.recipient_id],
+                "buyer_name": buyer_name, "provider_name": provider_name,
                 "last_message": text[:100] if text else f"{len(attachments)} fayl göndərildi", "updated_at": now_iso(), "created_at": now_iso(),
             })
     thread = await db.message_threads.find_one({"id": tid}, {"_id": 0}) if tid else None
@@ -1978,6 +2189,21 @@ async def list_ads(placement: Optional[str] = None):
     if placement:
         q["placement"] = placement
     return await db.ads.find(q, {"_id": 0}).sort("priority", -1).to_list(50)
+
+
+@api_router.get("/ad-placements")
+async def list_ad_placements():
+    return await db.ad_placements.find({"active": True}, {"_id": 0}).sort("price", 1).to_list(50)
+
+
+@api_router.post("/ads/{aid}/track")
+async def track_ad(aid: str, body: dict):
+    event = body.get("type")
+    if event not in ("impression", "click"):
+        raise HTTPException(400, "Invalid track type")
+    field = "impressions" if event == "impression" else "clicks"
+    await db.ads.update_one({"id": aid}, {"$inc": {field: 1}})
+    return {"ok": True}
 
 
 @api_router.post("/me/subscription-requests")
@@ -2047,8 +2273,12 @@ async def request_advertising(body: dict, user: dict = Depends(require_role("pro
 
 
 @api_router.get("/blog")
-async def list_blog(limit: int = 20):
-    return await db.blog_posts.find({"status": "published"}, {"_id": 0}).sort("created_at", -1).to_list(limit)
+async def list_blog(page: int = 1, limit: int = 9):
+    query = {"status": "published"}
+    skip = (page - 1) * limit
+    total = await db.blog_posts.count_documents(query)
+    items = await db.blog_posts.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    return {"items": items, "total": total, "page": page, "limit": limit}
 
 
 @api_router.get("/blog/{slug}")
@@ -2448,19 +2678,31 @@ async def update_settings(body: dict, user: dict = Depends(require_role("admin")
     return {"ok": True}
 
 
+FUNCTIONAL_INTEGRATIONS = {"smtp"}  # keys with real backend logic wired up; others are placeholders
+
+
 @api_router.get("/admin/integrations")
 async def get_integrations(user: dict = Depends(require_role("admin"))):
-    return await db.integrations.find({}, {"_id": 0}).to_list(100)
+    items = await db.integrations.find({}, {"_id": 0}).to_list(100)
+    for item in items:
+        item.pop("secrets", None)  # never leak stored credentials back to the client
+        item["functional"] = item.get("key") in FUNCTIONAL_INTEGRATIONS
+    return items
 
 
 @api_router.put("/admin/integrations/{key}")
 async def update_integration(key: str, body: dict, user: dict = Depends(require_role("admin"))):
     _require_admin_module(user, "settings")
     old = await db.integrations.find_one({"key": key}, {"_id": 0})
+    secrets = body.pop("secrets", None)
     body["key"] = key
     body["updated_at"] = now_iso()
-    await db.integrations.update_one({"key": key}, {"$set": body}, upsert=True)
-    await write_audit(user, "integration.update", "integration", key, old or {}, body)
+    update = {"$set": body}
+    if secrets:
+        # Actual credentials are stored server-side only — GET strips this field.
+        update["$set"]["secrets"] = secrets
+    await db.integrations.update_one({"key": key}, update, upsert=True)
+    await write_audit(user, "integration.update", "integration", key, old or {}, {**body, "secrets": "•••" if secrets else None})
     return {"ok": True}
 
 
@@ -2535,6 +2777,9 @@ async def admin_generic_create(resource: str, body: dict, user: dict = Depends(r
         **body,
     }
     doc.setdefault("status", "draft" if resource in ("content-pages", "seo-pages", "email-templates") else "active")
+    if resource == "ad-placements":
+        doc.setdefault("active", True)
+        doc.setdefault("period", "ay")
     await db[config["collection"]].insert_one(doc)
     await write_audit(user, f"{resource}.create", resource.rstrip("s"), doc["id"], {}, doc)
     doc.pop("_id", None)
@@ -2594,6 +2839,22 @@ async def public_home_content():
         return {}
 
 
+@api_router.get("/stats/public")
+async def public_platform_stats():
+    providers = await db.companies.count_documents({"status": "active"})
+    buyers = await db.users.count_documents({"role": "buyer", "status": {"$ne": "deleted"}})
+    briefs = await db.briefs.count_documents({"status": {"$ne": "draft"}})
+    pipeline = [{"$match": {"status": "active", "rating": {"$gt": 0}}}, {"$group": {"_id": None, "avg": {"$avg": "$rating"}}}]
+    agg = await db.companies.aggregate(pipeline).to_list(1)
+    avg_rating = round(agg[0]["avg"], 1) if agg else 0
+    return {
+        "active_providers": providers,
+        "active_buyers": buyers,
+        "total_briefs": briefs,
+        "avg_rating": avg_rating,
+    }
+
+
 @api_router.get("/content/provider-landing")
 async def public_provider_landing_content():
     return await _published_content_by_slug("provider-landing")
@@ -2647,6 +2908,8 @@ async def upload_media(
         thread = await db.message_threads.find_one({"id": entity_id}, {"_id": 0})
         if not thread or user["id"] not in thread.get("participants", []):
             raise HTTPException(403, "Forbidden")
+    elif module == "avatar":
+        pass  # any authenticated user may upload their own profile picture
     elif user.get("role") not in ("admin", "provider"):
         raise HTTPException(403, "Forbidden")
     elif user.get("role") == "admin":

@@ -31,6 +31,7 @@ import RegisterBuyer from "@/pages/auth/RegisterBuyer";
 import RegisterProvider from "@/pages/auth/RegisterProvider";
 import ForgotPassword from "@/pages/auth/ForgotPassword";
 import ResetPassword from "@/pages/auth/ResetPassword";
+import VerifyEmail from "@/pages/auth/VerifyEmail";
 
 import BuyerDashboard from "@/pages/buyer/Dashboard";
 import BuyerShortlist from "@/pages/buyer/Shortlist";
@@ -138,6 +139,7 @@ function App() {
             <Route path="/register/provider" element={<RegisterProvider />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
 
             {/* Buyer */}
             <Route element={<ProtectedRoute roles={["buyer"]}><DashboardLayout role="buyer" /></ProtectedRoute>}>
@@ -207,6 +209,7 @@ function App() {
               <Route path="/admin/proposals" element={<AdminResourcePage resource="proposals" />} />
               <Route path="/admin/verification" element={<AdminResourcePage resource="verification-requests" />} />
               <Route path="/admin/ads" element={<AdminAds />} />
+              <Route path="/admin/ad-placements" element={<AdminResourcePage resource="ad-placements" />} />
               <Route path="/admin/plans" element={<AdminPlans />} />
               <Route path="/admin/subscriptions" element={<AdminResourcePage resource="subscriptions" />} />
               <Route path="/admin/payments" element={<AdminResourcePage resource="payments" />} />

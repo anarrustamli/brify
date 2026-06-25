@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Ban, RotateCcw } from "lucide-react";
 
 const ROLES = ["buyer", "provider", "admin"];
-const STATUSES = ["active", "inactive", "deleted"];
+const STATUSES = ["active", "suspended", "inactive", "deleted"];
 
 const EMPTY_FORM = { name: "", email: "", phone: "", role: "buyer", status: "active", password: "" };
 
@@ -63,6 +63,17 @@ export default function Users() {
       toast.error(err?.response?.data?.detail || "Xəta baş verdi");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function toggleSuspend(u) {
+    const nextStatus = u.status === "suspended" ? "active" : "suspended";
+    try {
+      await api.put(`/admin/users/${u.id}`, { status: nextStatus });
+      toast.success(nextStatus === "suspended" ? "İstifadəçi dayandırıldı" : "İstifadəçi aktivləşdirildi");
+      load();
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Xəta baş verdi");
     }
   }
 
@@ -120,6 +131,11 @@ export default function Users() {
                 </td>
                 <td className="p-4 text-slate-500 text-xs">{u.created_at ? new Date(u.created_at).toLocaleDateString("az-AZ") : "—"}</td>
                 <td className="p-4 text-right flex justify-end gap-2">
+                  {u.status === "suspended" ? (
+                    <button onClick={() => toggleSuspend(u)} className="p-1.5 rounded-lg hover:bg-emerald-50 text-slate-500 hover:text-emerald-600" title="Aktivləşdir"><RotateCcw className="h-4 w-4" /></button>
+                  ) : (
+                    <button onClick={() => toggleSuspend(u)} className="p-1.5 rounded-lg hover:bg-amber-50 text-slate-500 hover:text-amber-600" title="Dayandır"><Ban className="h-4 w-4" /></button>
+                  )}
                   <button onClick={() => openEdit(u)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-blue-600" title="Redaktə et"><Pencil className="h-4 w-4" /></button>
                   <button onClick={() => setDeleteConfirm(u.id)} className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-500 hover:text-rose-600" title="Sil"><Trash2 className="h-4 w-4" /></button>
                 </td>

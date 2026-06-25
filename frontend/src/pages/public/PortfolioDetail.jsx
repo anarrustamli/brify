@@ -57,7 +57,7 @@ export default function PortfolioDetail({ buyerMode = false }) {
           </section>
           {item.gallery?.length > 0 && (
             <div className="grid sm:grid-cols-2 gap-4 mt-8">
-              {item.gallery.map((src) => <img key={src} src={src} alt="" className="w-full h-56 object-cover rounded-xl border border-slate-200" />)}
+              {item.gallery.map((src, i) => <img key={src} src={src} alt={`${item.title} - şəkil ${i + 1}`} className="w-full h-56 object-cover rounded-xl border border-slate-200" />)}
             </div>
           )}
         </main>

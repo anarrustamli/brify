@@ -118,6 +118,15 @@ ADS = [
     {"title": "Markaların güvəndiyi platforma", "image_url": "https://images.pexels.com/photos/3184339/pexels-photo-3184339.jpeg?w=1200&h=200&fit=crop", "link": "/companies", "placement": "search-top", "priority": 8, "status": "active", "start_date": now_iso(), "end_date": days_ago(-30)},
 ]
 
+AD_PLACEMENTS = [
+    ("Homepage Featured", 499, "Ana səhifədə premium yerləşdirmə"),
+    ("Kateqoriya Sponsor", 299, "Seçilmiş kateqoriyada öncə görün"),
+    ("Featured Service", 99, "Xidmət axtarışında ön sırada"),
+    ("Search Promoted", 149, "Şirkət axtarışında promoted"),
+    ("Right Sidebar Banner", 199, "Desktop sağ sidebar reklamı"),
+    ("Blog Sponsorship", 249, "Bloq səhifələrində sponsor"),
+]
+
 
 async def run_seed(db):
     # Indexes
@@ -142,6 +151,7 @@ async def run_seed(db):
             await _seed_categories_if_missing(db)
             await _seed_plans_if_missing(db)
             await _seed_sectors_if_missing(db)
+            await _seed_ad_placements_if_missing(db)
             await _ensure_search_ads(db)
             await _write_test_credentials()
             return
@@ -470,6 +480,14 @@ async def run_seed(db):
         for a in ADS:
             await db.ads.insert_one({"id": new_id(), "impressions": 1250, "clicks": 38, "created_at": now_iso(), **a})
 
+    # Ad placements (provider-facing advertising catalog, admin-editable)
+    if await db.ad_placements.count_documents({}) == 0:
+        for title, price, desc in AD_PLACEMENTS:
+            await db.ad_placements.insert_one({
+                "id": new_id(), "title": title, "price": price, "description": desc,
+                "period": "ay", "active": True, "created_at": now_iso(),
+            })
+
     # Settings
     await db.settings.update_one({"id": "main"}, {"$set": {
         "id": "main",
@@ -553,6 +571,16 @@ async def _seed_plans_if_missing(db):
     if await db.plans.count_documents({}) > 0:
         return
     await db.plans.insert_many([dict(p) for p in PLANS])
+
+
+async def _seed_ad_placements_if_missing(db):
+    if await db.ad_placements.count_documents({}) > 0:
+        return
+    for title, price, desc in AD_PLACEMENTS:
+        await db.ad_placements.insert_one({
+            "id": new_id(), "title": title, "price": price, "description": desc,
+            "period": "ay", "active": True, "created_at": now_iso(),
+        })
 
 
 async def _ensure_search_ads(db):

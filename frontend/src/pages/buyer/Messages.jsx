@@ -82,6 +82,33 @@ export default function Messages() {
   const partnerName = partnerFor(thread || activeThread);
   const partnerRole = user?.role === "provider" ? "Buyer" : "Provider";
   const sharedMedia = thread?.shared_media || [];
+  const partnerId = (thread || activeThread)?.participants?.find((id) => id !== user?.id);
+
+  const blockPartner = async () => {
+    if (!partnerId) return;
+    if (!window.confirm(`${partnerName} ilə söhbəti bloklamaq istədiyinizə əminsiniz? Bu söhbət siyahınızdan gizlədiləcək.`)) return;
+    try {
+      await api.post("/me/blocked-users", { user_id: partnerId });
+      toast.success(`${partnerName} bloklandı`);
+      setActiveId(null);
+      setThread(null);
+      await loadThreads();
+    } catch (err) {
+      toast.error(formatApiError(err?.response?.data?.detail));
+    }
+  };
+
+  const reportPartner = async () => {
+    if (!partnerId) return;
+    const reason = window.prompt(`${partnerName} haqqında şikayətinizi qısaca yazın:`);
+    if (!reason || !reason.trim()) return;
+    try {
+      await api.post("/reports", { target_user_id: partnerId, thread_id: activeId, reason: reason.trim() });
+      toast.success("Şikayətiniz qeydə alındı");
+    } catch (err) {
+      toast.error(formatApiError(err?.response?.data?.detail));
+    }
+  };
 
   const send = async (event) => {
     event?.preventDefault();
@@ -291,8 +318,8 @@ export default function Messages() {
               </div>
               <div>
                 <h4 className="mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-400">Sürətli Əməliyyatlar</h4>
-                <button className="flex w-full items-center gap-2 rounded-lg p-2 text-sm text-slate-600 hover:bg-slate-50"><Ban className="h-4 w-4" />Blokla</button>
-                <button className="flex w-full items-center gap-2 rounded-lg p-2 text-sm text-rose-600 hover:bg-rose-50"><ShieldAlert className="h-4 w-4" />Şikayət et</button>
+                <button type="button" onClick={blockPartner} className="flex w-full items-center gap-2 rounded-lg p-2 text-sm text-slate-600 hover:bg-slate-50"><Ban className="h-4 w-4" />Blokla</button>
+                <button type="button" onClick={reportPartner} className="flex w-full items-center gap-2 rounded-lg p-2 text-sm text-rose-600 hover:bg-rose-50"><ShieldAlert className="h-4 w-4" />Şikayət et</button>
               </div>
             </div>
           </aside>

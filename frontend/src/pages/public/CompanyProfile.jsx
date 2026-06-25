@@ -36,6 +36,9 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { fmtRange } from "@/lib/format";
 import { useAuth } from "@/lib/auth";
 import { companyBadges, legalTypeLabel } from "@/lib/companyMeta";
@@ -579,7 +582,7 @@ export default function CompanyProfile({ buyerMode = false }) {
         <div className="grid gap-5">
           {caseStudies.map((item) => (
             <article key={item.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white md:grid md:grid-cols-[300px_1fr]">
-              {item.cover_url && <img src={item.cover_url} alt="" className="h-64 w-full object-cover md:h-full" />}
+              {item.cover_url && <img src={item.cover_url} alt={item.title} className="h-64 w-full object-cover md:h-full" />}
               <div className="p-6">
                 <div className="flex flex-wrap gap-2">
                   {item.industry && <Chip tone="blue">{item.industry}</Chip>}
@@ -775,42 +778,37 @@ export default function CompanyProfile({ buyerMode = false }) {
         onOpenChange={setBriefOpen}
       />
 
-      {reviewOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-              <h2 className="text-lg font-semibold text-slate-900">{c.name} haqqında rəy yaz</h2>
-              <button onClick={() => setReviewOpen(false)} className="text-slate-400 hover:text-slate-600 text-xl leading-none">×</button>
+      <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{c.name} haqqında rəy yaz</DialogTitle></DialogHeader>
+          <form onSubmit={submitReview} className="space-y-4">
+            <div>
+              <Label>Reytinq</Label>
+              <div className="mt-2 flex gap-1">
+                {[1,2,3,4,5].map((n) => (
+                  <button key={n} type="button" onClick={() => setReviewForm((f) => ({ ...f, rating: n }))} className="p-1">
+                    <Star className={`h-7 w-7 ${n <= reviewForm.rating ? "fill-amber-400 text-amber-400" : "text-slate-200"}`} />
+                  </button>
+                ))}
+              </div>
             </div>
-            <form onSubmit={submitReview} className="p-6 space-y-4">
-              <div>
-                <label className="text-sm font-semibold text-slate-700 block mb-2">Reytinq</label>
-                <div className="flex gap-1">
-                  {[1,2,3,4,5].map((n) => (
-                    <button key={n} type="button" onClick={() => setReviewForm((f) => ({ ...f, rating: n }))} className="p-1">
-                      <Star className={`h-7 w-7 ${n <= reviewForm.rating ? "fill-amber-400 text-amber-400" : "text-slate-200"}`} />
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-slate-700 block mb-1">Başlıq *</label>
-                <input required value={reviewForm.title} onChange={(e) => setReviewForm((f) => ({ ...f, title: e.target.value }))} className="w-full h-11 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="Qısa başlıq..." />
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-slate-700 block mb-1">Rəy *</label>
-                <textarea required rows={4} value={reviewForm.text} onChange={(e) => setReviewForm((f) => ({ ...f, text: e.target.value }))} className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 resize-none" placeholder="Ətraflı rəyinizi yazın..." />
-              </div>
-              <div className="flex gap-3">
-                <button type="button" onClick={() => setReviewOpen(false)} className="flex-1 h-11 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">Ləğv et</button>
-                <button type="submit" disabled={reviewSaving} className="flex-1 h-11 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60">
-                  {reviewSaving ? "Göndərilir..." : "Rəyi göndər"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <div>
+              <Label>Başlıq *</Label>
+              <input required value={reviewForm.title} onChange={(e) => setReviewForm((f) => ({ ...f, title: e.target.value }))} className="mt-1 w-full h-11 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100" placeholder="Qısa başlıq..." />
+            </div>
+            <div>
+              <Label>Rəy *</Label>
+              <Textarea required rows={4} value={reviewForm.text} onChange={(e) => setReviewForm((f) => ({ ...f, text: e.target.value }))} className="mt-1 resize-none" placeholder="Ətraflı rəyinizi yazın..." />
+            </div>
+            <div className="flex gap-3">
+              <button type="button" onClick={() => setReviewOpen(false)} className="flex-1 h-11 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">Ləğv et</button>
+              <button type="submit" disabled={reviewSaving} className="flex-1 h-11 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60">
+                {reviewSaving ? "Göndərilir..." : "Rəyi göndər"}
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

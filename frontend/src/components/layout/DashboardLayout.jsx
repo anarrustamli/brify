@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import NotificationBell from "@/components/shared/NotificationBell";
+import VerifyEmailBanner from "@/components/shared/VerifyEmailBanner";
 
 const buyerNav = [
   { to: "/buyer/dashboard", label: "İdarə paneli", icon: LayoutDashboard },
@@ -58,6 +59,7 @@ const adminNav = [
   { to: "/admin/proposals", label: "Təkliflər", icon: ClipboardList, module: "proposals" },
   { to: "/admin/verification", label: "Doğrulama", icon: ShieldCheck, module: "verification" },
   { to: "/admin/ads", label: "Reklamlar", icon: Megaphone, module: "ads" },
+  { to: "/admin/ad-placements", label: "Reklam paketləri", icon: DollarSign, module: "ads" },
   { to: "/admin/plans", label: "Planlar", icon: DollarSign, module: "billing" },
   { to: "/admin/subscriptions", label: "Abunəliklər", icon: CreditCard, module: "billing" },
   { to: "/admin/payments", label: "Ödənişlər", icon: Receipt, module: "billing" },
@@ -198,6 +200,7 @@ export default function DashboardLayout({ role }) {
           </div>
         </div>
         <main className="p-4 lg:p-8 max-w-[1400px] mx-auto">
+          <VerifyEmailBanner />
           <Outlet />
         </main>
       </div>

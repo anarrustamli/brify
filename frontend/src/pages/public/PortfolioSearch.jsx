@@ -104,7 +104,7 @@ export default function PortfolioSearch({ buyerMode = false }) {
   return (
     <div className="min-h-screen bg-slate-50 pb-32">
       <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="px-4 py-8 sm:px-6 lg:px-8">
           <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
             <div className="mb-3 inline-flex rounded-lg border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">Portfolio discovery</div>
             <h1 className="text-3xl font-bold text-slate-950 sm:text-4xl">Real işlərə baxın, nəticələri qarşılaşdırın</h1>
@@ -130,7 +130,7 @@ export default function PortfolioSearch({ buyerMode = false }) {
         </div>
       </section>
 
-      <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+      <div className="px-4 pt-6 sm:px-6 lg:px-8">
         <div className="mb-6 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {discoveryChips.map(({ label, icon: Icon, action, tone }) => (
             <button key={label} type="button" onClick={action} className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-1.5 text-sm font-medium text-slate-800 shadow-sm transition-colors hover:bg-slate-100">
@@ -251,13 +251,13 @@ export default function PortfolioSearch({ buyerMode = false }) {
       </div>
 
       {compared.length > 0 && (
-        <div className="fixed bottom-4 left-1/2 z-40 hidden w-[min(720px,calc(100vw-32px))] -translate-x-1/2 rounded-lg border border-slate-200 bg-white/95 p-3 shadow-[0_12px_40px_rgba(15,23,42,0.16)] backdrop-blur md:block">
+        <div className="fixed bottom-4 left-1/2 z-40 w-[min(720px,calc(100vw-32px))] -translate-x-1/2 rounded-lg border border-slate-200 bg-white/95 p-3 shadow-[0_12px_40px_rgba(15,23,42,0.16)] backdrop-blur">
           <div className="flex items-center justify-between gap-4">
-            <div>
+            <div className="min-w-0">
               <div className="text-sm font-semibold text-slate-950">{compared.length} portfolio qarşılaşdırma üçün seçilib</div>
-              <div className="text-xs text-slate-500">{comparedItems.map((item) => item.title).slice(0, 2).join(", ")}</div>
+              <div className="hidden truncate text-xs text-slate-500 sm:block">{comparedItems.map((item) => item.title).slice(0, 2).join(", ")}</div>
             </div>
-            <Button asChild className="rounded-lg bg-blue-600 hover:bg-blue-700">
+            <Button asChild className="shrink-0 rounded-lg bg-blue-600 hover:bg-blue-700">
               <Link to={`/buyer/compare?type=portfolio&ids=${compared.join(",")}`} state={{ type: "portfolio", ids: compared }} data-testid="compare-portfolio-btn">
                 <GitCompare className="mr-2 h-4 w-4" />
                 Qarşılaşdır

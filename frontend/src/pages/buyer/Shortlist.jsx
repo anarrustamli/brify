@@ -102,7 +102,7 @@ export default function BuyerShortlist() {
                   const company = companies.find((item) => item.id === id);
                   return (
                     <div key={id} className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-blue-50 text-xs font-bold text-blue-700 shadow-sm">
-                      {company?.logo_url ? <img src={company.logo_url} alt="" className="h-full w-full rounded-full object-cover" /> : company?.name?.slice(0, 2)}
+                      {company?.logo_url ? <img src={company.logo_url} alt={company?.name} className="h-full w-full rounded-full object-cover" /> : company?.name?.slice(0, 2)}
                     </div>
                   );
                 })}

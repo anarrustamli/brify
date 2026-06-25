@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { PageHeader } from "@/components/shared/Common";
+import { PageHeader, PlanLimitBanner } from "@/components/shared/Common";
 import Breadcrumbs from "@/components/shared/Breadcrumbs";
+import usePlanLimit from "@/hooks/usePlanLimit";
 import { toast } from "sonner";
 
 const blank = { title: "", client_name: "", industry: "", challenge: "", solution: "", results: "", metrics: "", before_after: "", cover_url: "" };
@@ -17,6 +18,7 @@ export default function CaseStudyForm() {
   const navigate = useNavigate();
   const [form, setForm] = useState(blank);
   const [loading, setLoading] = useState(false);
+  const { limitReached, limit, planName } = usePlanLimit("case_studies", { skip: editing });
 
   useEffect(() => {
     if (editing) api.get(`/me/case-studies/${id}`).then((r) => setForm(r.data)).catch(() => toast.error("Tapılmadı"));
@@ -44,6 +46,7 @@ export default function CaseStudyForm() {
         { label: editing ? "Redaktə et" : "Yeni" },
       ]} />
       <PageHeader title={editing ? "Case Study redaktə et" : "Yeni Case Study"} />
+      {!editing && limitReached && <PlanLimitBanner resourceLabel="case study" limit={limit} planName={planName} />}
       <form onSubmit={submit} className="space-y-6">
         <section className="bg-white border border-slate-200 rounded-xl p-6 space-y-4">
           <h3 className="font-semibold text-slate-900">Əsas məlumatlar</h3>
@@ -63,7 +66,7 @@ export default function CaseStudyForm() {
           <div><Label>Before / After</Label><Textarea rows={2} value={form.before_after} onChange={(e) => update("before_after", e.target.value)} className="mt-1" /></div>
         </section>
         <div className="flex gap-3">
-          <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 h-11 px-6" data-testid="cs-submit">{loading ? "Saxlanır..." : "Yadda saxla"}</Button>
+          <Button type="submit" disabled={loading || (!editing && limitReached)} className="bg-blue-600 hover:bg-blue-700 h-11 px-6" data-testid="cs-submit">{loading ? "Saxlanır..." : "Yadda saxla"}</Button>
           <Button type="button" variant="outline" asChild className="h-11"><Link to="/provider/case-studies">Ləğv et</Link></Button>
         </div>
       </form>

@@ -437,7 +437,7 @@ function PortfolioTab({ companies, portfolioByCompany, selectedIds }) {
               <div className="mt-4 grid gap-3 lg:grid-cols-2">
                 {items.map((item) => (
                   <div key={item.id} className={`overflow-hidden rounded-lg border bg-white shadow-sm ${selectedIds.has(item.id) ? "border-blue-300 ring-2 ring-blue-100" : "border-slate-200"}`}>
-                    {item.image_url && <img src={item.image_url} alt="" className="h-36 w-full object-cover" />}
+                    {item.image_url && <img src={item.image_url} alt={item.title} className="h-36 w-full object-cover" />}
                     <div className="p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>

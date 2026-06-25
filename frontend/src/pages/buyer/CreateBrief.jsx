@@ -209,6 +209,24 @@ export default function CreateBrief() {
     }
   };
 
+  const saveDraft = async () => {
+    if (!form.title.trim()) {
+      toast.error("Draft saxlamaq üçün ən azı başlıq lazımdır");
+      return;
+    }
+    setLoading(true);
+    try {
+      const payload = { ...form, description: form.short_description, status: "draft" };
+      const { data } = isEditMode ? await api.put(`/briefs/${editId}`, payload) : await api.post("/briefs", payload);
+      toast.success("Draft yadda saxlandı");
+      navigate(`/buyer/briefs/${data.id}`);
+    } catch (err) {
+      toast.error(formatApiError(err.response?.data?.detail));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const sendCreatedBrief = async () => {
     if (!createdBrief || !targetCompanyIds.length) return;
     setLoading(true);
@@ -469,7 +487,7 @@ export default function CreateBrief() {
                 <Link to={cancelTo}>Ləğv et</Link>
               </Button>
               {!isEditMode && (
-                <Button type="button" variant="outline" className="rounded-lg" onClick={() => toast.info("Draft rejimi üçün forma saxlanmağa hazırdır")}>
+                <Button type="button" variant="outline" disabled={loading} className="rounded-lg" onClick={saveDraft}>
                   <Save className="mr-2 h-4 w-4" /> Draft saxla
                 </Button>
               )}

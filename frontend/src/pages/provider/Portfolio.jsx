@@ -33,7 +33,7 @@ export default function Portfolio() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map((p) => (
             <div key={p.id} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-              {p.image_url && <img src={p.image_url} alt="" className="w-full h-40 object-cover" />}
+              {p.image_url && <img src={p.image_url} alt={p.title} className="w-full h-40 object-cover" />}
               <div className="p-5">
                 <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider">{p.industry}</span>
                 <h3 className="font-semibold mt-1 text-slate-900">{p.title}</h3>

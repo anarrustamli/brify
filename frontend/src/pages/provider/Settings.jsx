@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Lock } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { PageHeader } from "@/components/shared/Common";
@@ -14,13 +15,30 @@ const tabs = [
 ];
 
 export default function Settings() {
-  const { user, refresh } = useAuth();
+  const { user, refresh, logout } = useAuth();
+  const navigate = useNavigate();
   const [active, setActive] = useState("profile");
   const [form, setForm] = useState({ name: user?.name || "", phone: user?.phone || "" });
   const [saving, setSaving] = useState(false);
 
   const [pwForm, setPwForm] = useState({ current_password: "", new_password: "", confirm: "" });
   const [pwSaving, setPwSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDeleteAccount() {
+    if (!window.confirm("Hesabınızı silmək istədiyinizə əminsiniz? Bu əməliyyat geri qaytarıla bilməz.")) return;
+    setDeleting(true);
+    try {
+      await api.delete("/me/account");
+      toast.success("Hesabınız silindi");
+      await logout();
+      navigate("/");
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Xəta baş verdi");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   async function handleProfileSave(e) {
     e.preventDefault();
@@ -122,7 +140,9 @@ export default function Settings() {
           <div className="rounded-lg border border-rose-200 bg-white p-5">
             <h2 className="text-lg font-semibold text-rose-700">Hesabı sil</h2>
             <p className="mt-1 text-sm text-slate-500">Hesabınızı sildikdən sonra bütün məlumatlarınız daimi olaraq silinəcək.</p>
-            <Button variant="outline" className="mt-4 rounded-lg border-rose-200 text-rose-700 hover:bg-rose-50">Hesabımı sil</Button>
+            <Button variant="outline" disabled={deleting} onClick={handleDeleteAccount} className="mt-4 rounded-lg border-rose-200 text-rose-700 hover:bg-rose-50">
+              {deleting ? "Silinir..." : "Hesabımı sil"}
+            </Button>
           </div>
         </div>
       )}

@@ -1,10 +1,10 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Briefcase, Check, CheckCircle2, Clock, Crown, GitCompare, Send, Star, Timer } from "lucide-react";
+import { Briefcase, Check, CheckCircle2, Clock, Crown, GitCompare, MapPin, Send, Star, Timer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fmtRange } from "@/lib/format";
 
-export default function ServiceCard({ service, compared, onCompare, onBrief, buyerMode = false, returnTo = "" }) {
+export default function ServiceCard({ service, compared, onCompare, onBrief, buyerMode = false, returnTo = "", variant = "grid" }) {
   if (!service) return null;
 
   const tags = [...(service.deliverables || []), ...(service.technologies || []), ...(service.industries || [])].slice(0, 4);
@@ -13,6 +13,63 @@ export default function ServiceCard({ service, compared, onCompare, onBrief, buy
     : `${buyerMode ? "/buyer/company" : "/companies"}/${service.company_id}`;
   const servicePath = `${buyerMode ? "/buyer/service" : "/service"}/${service.id}`;
   const portfolioCount = service.company_portfolio_count || service.portfolio_count || 0;
+
+  if (variant === "list") {
+    return (
+      <article
+        data-testid={`service-card-${service.id}`}
+        className={`relative flex flex-col gap-4 rounded-lg border bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(15,23,42,0.08)] sm:flex-row sm:items-center ${
+          compared ? "border-blue-500 ring-1 ring-blue-100" : "border-slate-200 hover:border-slate-300"
+        }`}
+      >
+        <Link to={companyPath} state={{ returnTo }} className="shrink-0">
+          {service.company_logo ? (
+            <img src={service.company_logo} alt={service.company_name} className="h-16 w-16 rounded-lg border border-slate-200 object-cover" />
+          ) : (
+            <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-blue-100 text-lg font-bold text-blue-700">
+              {service.company_name?.[0]}
+            </div>
+          )}
+        </Link>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <Link to={servicePath} state={{ returnTo }} className="text-lg font-semibold text-slate-950 hover:text-blue-700">
+              {service.name}
+            </Link>
+            {service.sponsored && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                <Crown className="h-3 w-3" /> Sponsorlu
+              </span>
+            )}
+            {service.company_verified && <CheckCircle2 className="h-4 w-4 text-emerald-500" aria-label="Doğrulanmış" />}
+          </div>
+          <Link to={companyPath} state={{ returnTo }} className="text-sm text-slate-500 hover:text-blue-700">{service.company_name}</Link>
+          <p className="mt-1 line-clamp-1 text-sm text-slate-500">{service.description}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+            <span className="flex items-center gap-1"><Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />{(service.company_rating || 0).toFixed(1)}</span>
+            <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{service.timeline}</span>
+            {service.company_location && <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{service.company_location}</span>}
+          </div>
+        </div>
+
+        <div className="flex shrink-0 flex-col items-end gap-2 sm:w-44">
+          <div className="text-right">
+            <div className="text-[11px] font-semibold uppercase text-slate-500">Büdcə</div>
+            <div className="text-lg font-bold text-slate-950">{fmtRange(service.price_min, service.price_max)}</div>
+          </div>
+          <div className="grid w-full grid-cols-2 gap-2">
+            <Button type="button" variant={compared ? "default" : "outline"} size="sm" onClick={onCompare} data-testid={`compare-service-${service.id}`} className={compared ? "bg-blue-600 hover:bg-blue-700" : ""}>
+              {compared ? <Check className="h-4 w-4" /> : <GitCompare className="h-4 w-4" />}
+            </Button>
+            <Button type="button" size="sm" onClick={onBrief} data-testid={`brief-service-${service.id}`} className="bg-blue-600 hover:bg-blue-700">
+              <Send className="mr-1 h-3.5 w-3.5" /> Brief
+            </Button>
+          </div>
+        </div>
+      </article>
+    );
+  }
 
   return (
     <article

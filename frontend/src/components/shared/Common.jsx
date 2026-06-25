@@ -1,5 +1,18 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { Lock } from "lucide-react";
+
+export function PlanLimitBanner({ resourceLabel, limit, planName }) {
+  return (
+    <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+      <div className="flex items-center gap-2">
+        <Lock className="h-4 w-4 shrink-0" />
+        <span>{planName || "Cari"} planınızda {resourceLabel} limiti ({limit}) dolub. Yeni əlavə etmək üçün planı yüksəldin.</span>
+      </div>
+      <Link to="/provider/billing" className="shrink-0 font-semibold underline hover:text-amber-700">Planı yüksəlt</Link>
+    </div>
+  );
+}
 
 export function StatCard({ icon: Icon, label, value, change, accent = "blue", testId, to, description }) {
   const accentMap = {

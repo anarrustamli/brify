@@ -116,6 +116,14 @@ const RESOURCE_CONFIG = {
     fields: [["title", "Başlıq"], ["slug", "Slug"], ["path", "Path"], ["seo_title", "SEO title"], ["seo_description", "SEO description", "textarea"], ["status", "Status"]],
     columns: ["title", "slug", "path", "status"],
   },
+  "ad-placements": {
+    title: "Reklam yerləşdirmələri",
+    description: "Provider-lərə göstərilən reklam paketləri və qiymətləri",
+    primary: "title",
+    secondary: "price",
+    fields: [["title", "Ad"], ["description", "Təsvir", "textarea"], ["price", "Qiymət (AZN)", "number"], ["period", "Dövr"]],
+    columns: ["title", "price", "period", "active"],
+  },
   faqs: {
     title: "FAQ",
     description: "Tez-tez verilən suallar",

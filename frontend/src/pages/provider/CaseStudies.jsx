@@ -32,7 +32,7 @@ export default function CaseStudies() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map((c) => (
             <div key={c.id} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-              {c.cover_url && <img src={c.cover_url} alt="" className="w-full h-40 object-cover" />}
+              {c.cover_url && <img src={c.cover_url} alt={c.title} className="w-full h-40 object-cover" />}
               <div className="p-5">
                 <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider">{c.industry}</span>
                 <h3 className="font-semibold mt-1 text-slate-900">{c.title}</h3>

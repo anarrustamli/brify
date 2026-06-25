@@ -138,7 +138,6 @@ export default function MyBriefs() {
           </div>
           <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-500">
             <span>Göstərilir: {visibleBriefs.length} / {briefs.length} nəticə</span>
-            <span className="rounded-md bg-blue-600 px-3 py-1 text-xs font-bold text-white">1</span>
           </div>
         </div>
       )}

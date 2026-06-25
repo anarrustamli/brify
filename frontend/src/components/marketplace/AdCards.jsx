@@ -1,14 +1,29 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Crown, ArrowRight } from "lucide-react";
+import api from "@/lib/api";
+
+function useAdImpression(adId) {
+  useEffect(() => {
+    if (!adId) return;
+    api.post(`/ads/${adId}/track`, { type: "impression" }).catch(() => {});
+  }, [adId]);
+}
+
+function trackAdClick(adId) {
+  if (!adId) return;
+  api.post(`/ads/${adId}/track`, { type: "click" }).catch(() => {});
+}
 
 export function InlineAdCard({ ad }) {
+  useAdImpression(ad?.id);
   if (!ad) return null;
   return (
     <Link
       to={ad.link || "#"}
+      onClick={() => trackAdClick(ad.id)}
       data-testid={`inline-ad-${ad.id}`}
-      className="group relative bg-gradient-to-br from-amber-50 via-white to-blue-50 border border-amber-200 rounded-xl p-5 hover:border-amber-400 hover:shadow-[0_4px_24px_rgba(245,158,11,0.15)] transition-all overflow-hidden"
+      className="group block relative bg-gradient-to-br from-amber-50 via-white to-blue-50 border border-amber-200 rounded-xl p-5 hover:border-amber-400 hover:shadow-[0_4px_24px_rgba(245,158,11,0.15)] transition-all overflow-hidden"
     >
       <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-[10px] font-semibold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
         <Crown className="w-3 h-3" /> SPONSORLU
@@ -30,10 +45,12 @@ export function InlineAdCard({ ad }) {
 }
 
 export function SidebarAd({ ad }) {
+  useAdImpression(ad?.id);
   if (!ad) return null;
   return (
     <Link
       to={ad.link || "#"}
+      onClick={() => trackAdClick(ad.id)}
       data-testid={`sidebar-ad-${ad.id}`}
       className="group block relative bg-slate-900 text-white rounded-xl overflow-hidden hover:shadow-[0_8px_28px_rgba(15,23,42,0.18)] transition-all"
     >
@@ -58,10 +75,12 @@ export function SidebarAd({ ad }) {
 }
 
 export function TopBannerAd({ ad }) {
+  useAdImpression(ad?.id);
   if (!ad) return null;
   return (
     <Link
       to={ad.link || "#"}
+      onClick={() => trackAdClick(ad.id)}
       data-testid={`top-banner-ad-${ad.id}`}
       className="relative block rounded-xl overflow-hidden border border-amber-200 bg-gradient-to-r from-amber-50 via-white to-blue-50 p-4 sm:p-5 mb-6 hover:shadow-md transition-shadow"
     >

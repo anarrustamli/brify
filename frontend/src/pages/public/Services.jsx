@@ -5,6 +5,8 @@ import {
   CheckCircle2,
   Crown,
   GitCompare,
+  LayoutGrid,
+  List,
   MapPin,
   ReceiptText,
   Search,
@@ -27,6 +29,8 @@ import ServiceCard from "@/components/marketplace/ServiceCard";
 import BriefSendDialog from "@/components/marketplace/BriefSendDialog";
 import { InlineAdCard, SidebarAd, TopBannerAd } from "@/components/marketplace/AdCards";
 import { toast } from "sonner";
+
+const PAGE_SIZE = 12;
 
 const blankFilters = {
   q: "",
@@ -65,10 +69,14 @@ export default function Services({ buyerMode = false }) {
   const [loading, setLoading] = useState(true);
   const [compared, setCompared] = useState([]);
   const [briefTarget, setBriefTarget] = useState(null);
+  const [page, setPage] = useState(1);
+  const [view, setView] = useState(() => localStorage.getItem("bm_services_view") || "grid");
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const returnTo = `${location.pathname}${location.search}`;
+
+  const setViewMode = (v) => { setView(v); localStorage.setItem("bm_services_view", v); };
 
   useEffect(() => {
     api.get("/categories").then((r) => setCategories(r.data));
@@ -83,7 +91,9 @@ export default function Services({ buyerMode = false }) {
     Object.entries(filters).forEach(([k, v]) => {
       if (v && v !== "all" && v !== 0 && v !== false) q.set(k, v);
     });
-    setSearchParams(q, { replace: true });
+    q.set("page", page);
+    q.set("limit", PAGE_SIZE);
+    if (page === 1) setSearchParams(q, { replace: true });
     api.get(`/services?${q.toString()}`).then((r) => {
       setServices(r.data.items);
       setTotal(r.data.total);
@@ -93,11 +103,21 @@ export default function Services({ buyerMode = false }) {
       setTotal(0);
       setLoading(false);
     });
-  }, [filters, setSearchParams]);
+  }, [filters, page, setSearchParams]);
 
-  const update = (k, v) => setFilters((f) => ({ ...f, [k]: v }));
-  const resetFilters = () => setFilters(blankFilters);
+  // Debounce free-text search so every keystroke doesn't fire a request.
+  const [searchInput, setSearchInput] = useState(filters.q);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (searchInput !== filters.q) update("q", searchInput);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [searchInput]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const update = (k, v) => { setFilters((f) => ({ ...f, [k]: v })); setPage(1); };
+  const resetFilters = () => { setFilters(blankFilters); setSearchInput(""); setPage(1); };
   const toggleCompare = (id) => setCompared((items) => items.includes(id) ? items.filter((x) => x !== id) : [...items, id].slice(0, 5));
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const openBrief = (service) => {
     if (!user) { navigate("/login"); return; }
@@ -140,24 +160,25 @@ export default function Services({ buyerMode = false }) {
 
   const removeFilter = (key) => {
     if (key === "budget") setFilters((f) => ({ ...f, min_price: 0, max_price: 30000 }));
+    else if (key === "q") { setSearchInput(""); update(key, ""); }
     else update(key, key === "verified" || key === "sponsored" || key === "vat_payer" ? false : "");
   };
 
   const discoveryChips = [
     { label: "Top rated", icon: Star, action: () => update("sort", "rating"), tone: "text-amber-500" },
-    { label: "Fast response", icon: Zap, action: () => update("sort", "sponsored"), tone: "text-blue-500" },
+    { label: "Tövsiyə edilən", icon: Zap, action: () => update("sort", "sponsored"), tone: "text-blue-500" },
     { label: "Verified", icon: ShieldCheck, action: () => update("verified", true), tone: "text-emerald-500" },
     { label: "ƏDV ödəyicisi", icon: ReceiptText, action: () => update("vat_payer", true), tone: "text-slate-600" },
     { label: "Sponsorlu", icon: Crown, action: () => update("sponsored", true), tone: "text-amber-600" },
-    { label: "50+ portfolio", icon: Briefcase, action: () => update("sort", "rating"), tone: "text-indigo-500" },
+    { label: "Ən yüksək reytinqli", icon: Briefcase, action: () => update("sort", "rating"), tone: "text-indigo-500" },
     { label: "Bakı", icon: MapPin, action: () => update("location", "Bakı"), tone: "text-slate-500" },
-    { label: "SEO", icon: Search, action: () => update("q", "SEO"), tone: "text-blue-500" },
+    { label: "SEO", icon: Search, action: () => { setSearchInput("SEO"); update("q", "SEO"); }, tone: "text-blue-500" },
   ];
 
   return (
     <div className="min-h-screen bg-slate-50 pb-32">
       <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="px-4 py-8 sm:px-6 lg:px-8">
           <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
             <h1 className="text-3xl font-bold text-slate-950 sm:text-4xl">Xidmətləri qarşılaşdırın, doğru provider-i seçin</h1>
             <p className="mt-2 text-slate-600">Doğrulanmış provider-lərdən xidmətləri qarşılaşdırın və bir kliklə brief göndərin.</p>
@@ -166,12 +187,13 @@ export default function Services({ buyerMode = false }) {
               <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <Input
                 data-testid="filter-q"
-                value={filters.q}
-                onChange={(e) => update("q", e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && update("q", searchInput)}
                 placeholder="Xidmət axtarın (məs: SEO Audit, Korporativ Sayt)"
                 className="h-12 rounded-lg border-slate-300 bg-white pl-12 pr-28 shadow-sm focus-visible:ring-blue-500"
               />
-              <Button className="absolute right-1.5 top-1.5 h-9 rounded-md bg-blue-600 px-4 text-white hover:bg-blue-700">Axtar</Button>
+              <Button onClick={() => update("q", searchInput)} className="absolute right-1.5 top-1.5 h-9 rounded-md bg-blue-600 px-4 text-white hover:bg-blue-700">Axtar</Button>
             </div>
 
             <div className="mt-5 flex flex-wrap justify-center gap-4 border-t border-slate-200 pt-4 md:gap-8">
@@ -184,7 +206,7 @@ export default function Services({ buyerMode = false }) {
         </div>
       </section>
 
-      <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+      <div className="px-4 pt-6 sm:px-6 lg:px-8">
         <div className="mb-6 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {discoveryChips.map(({ label, icon: Icon, action, tone }) => (
             <button
@@ -295,65 +317,105 @@ export default function Services({ buyerMode = false }) {
                   </div>
                 )}
               </div>
-              <Select value={filters.sort} onValueChange={(v) => update("sort", v)}>
-                <SelectTrigger data-testid="sort-select" className="h-10 w-52 rounded-lg border-slate-200 bg-white"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sponsored">Tövsiyə edilən</SelectItem>
-                  <SelectItem value="rating">Ən yüksək reytinq</SelectItem>
-                  <SelectItem value="newest">Ən yeni</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center rounded-lg border border-slate-200 bg-white p-0.5">
+                  <button
+                    type="button"
+                    aria-label="Grid görünüşü"
+                    data-testid="view-grid"
+                    onClick={() => setViewMode("grid")}
+                    className={`flex h-9 w-9 items-center justify-center rounded-md transition-colors ${view === "grid" ? "bg-slate-950 text-white" : "text-slate-500 hover:bg-slate-100"}`}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Siyahı görünüşü"
+                    data-testid="view-list"
+                    onClick={() => setViewMode("list")}
+                    className={`flex h-9 w-9 items-center justify-center rounded-md transition-colors ${view === "list" ? "bg-slate-950 text-white" : "text-slate-500 hover:bg-slate-100"}`}
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
+                </div>
+                <Select value={filters.sort} onValueChange={(v) => update("sort", v)}>
+                  <SelectTrigger data-testid="sort-select" className="h-10 w-52 rounded-lg border-slate-200 bg-white"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sponsored">Tövsiyə edilən</SelectItem>
+                    <SelectItem value="rating">Ən yüksək reytinq</SelectItem>
+                    <SelectItem value="newest">Ən yeni</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+              <div className={view === "grid" ? "grid grid-cols-1 gap-5 lg:grid-cols-2" : "flex flex-col gap-4"}>
                 {[...Array(6)].map((_, i) => <div key={i} className="h-80 animate-pulse rounded-lg border border-slate-200 bg-white" />)}
               </div>
             ) : services.length === 0 ? (
               <div className="rounded-lg border border-slate-200 bg-white p-12 text-center text-slate-500">
                 Heç bir xidmət tapılmadı. Filtrləri yumşaldın və ya başqa açar söz yoxlayın.
+                <div className="mt-3">
+                  <Button variant="outline" onClick={resetFilters} className="rounded-lg">Filtrləri sıfırla</Button>
+                </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-                {services.flatMap((service, idx) => {
-                  const out = [
-                    <ServiceCard
-                      key={service.id}
-                      service={service}
-                      compared={compared.includes(service.id)}
-                      onCompare={() => toggleCompare(service.id)}
-                      onBrief={() => openBrief(service)}
-                      buyerMode={buyerMode}
-                      returnTo={returnTo}
-                    />
-                  ];
-                  if ((idx + 1) % 6 === 0 && inlineAds[Math.floor(idx / 6) % inlineAds.length]) {
-                    out.push(<InlineAdCard key={`ad-${idx}`} ad={inlineAds[Math.floor(idx / 6) % inlineAds.length]} />);
-                  }
-                  return out;
-                })}
-              </div>
+              <>
+                <div className={view === "grid" ? "grid grid-cols-1 gap-5 lg:grid-cols-2" : "flex flex-col gap-4"}>
+                  {services.flatMap((service, idx) => {
+                    const out = [
+                      <ServiceCard
+                        key={service.id}
+                        service={service}
+                        variant={view}
+                        compared={compared.includes(service.id)}
+                        onCompare={() => toggleCompare(service.id)}
+                        onBrief={() => openBrief(service)}
+                        buyerMode={buyerMode}
+                        returnTo={returnTo}
+                      />
+                    ];
+                    if ((idx + 1) % 6 === 0 && inlineAds[Math.floor(idx / 6) % inlineAds.length]) {
+                      out.push(
+                        <div key={`ad-${idx}`} className={view === "grid" ? "lg:col-span-2" : ""}>
+                          <InlineAdCard ad={inlineAds[Math.floor(idx / 6) % inlineAds.length]} />
+                        </div>
+                      );
+                    }
+                    return out;
+                  })}
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="mt-8 flex items-center justify-center gap-2">
+                    <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => { setPage((p) => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="rounded-lg">Əvvəlki</Button>
+                    <span className="px-3 text-sm text-slate-600">Səhifə {page} / {totalPages}</span>
+                    <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => { setPage((p) => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }} className="rounded-lg">Növbəti</Button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
       </div>
 
       {compared.length > 0 && (
-        <div className="fixed bottom-4 left-1/2 z-40 hidden w-[min(680px,calc(100vw-32px))] -translate-x-1/2 rounded-lg border border-slate-200 bg-white/95 p-3 shadow-[0_12px_40px_rgba(15,23,42,0.16)] backdrop-blur md:block">
-          <div className="flex items-center justify-between gap-4">
-            <div>
+        <div className="fixed bottom-4 left-1/2 z-40 w-[min(680px,calc(100vw-32px))] -translate-x-1/2 rounded-lg border border-slate-200 bg-white/95 p-3 shadow-[0_12px_40px_rgba(15,23,42,0.16)] backdrop-blur">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
               <div className="text-sm font-semibold text-slate-950">{compared.length} xidmət qarşılaşdırma üçün seçilib</div>
-              <div className="text-xs text-slate-500">{comparedServices.map((s) => s.name).slice(0, 2).join(", ")}</div>
+              <div className="hidden truncate text-xs text-slate-500 sm:block">{comparedServices.map((s) => s.name).slice(0, 2).join(", ")}</div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="rounded-lg" onClick={() => comparedServices[0] && openBrief(comparedServices[0])}>
-                <Send className="mr-2 h-4 w-4" />
-                Brief
+            <div className="flex shrink-0 gap-2">
+              <Button variant="outline" size="sm" className="rounded-lg" onClick={() => comparedServices[0] && openBrief(comparedServices[0])}>
+                <Send className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Brief</span>
               </Button>
-              <Button asChild className="rounded-lg bg-blue-600 hover:bg-blue-700">
+              <Button asChild size="sm" className="rounded-lg bg-blue-600 hover:bg-blue-700">
                 <Link to={`/buyer/compare?type=service&ids=${compared.join(",")}`} state={{ type: "service", ids: compared }} data-testid="compare-services-btn">
-                  <GitCompare className="mr-2 h-4 w-4" />
-                  Qarşılaşdır
+                  <GitCompare className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Qarşılaşdır</span>
                 </Link>
               </Button>
             </div>

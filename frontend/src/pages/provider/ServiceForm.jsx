@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { PageHeader } from "@/components/shared/Common";
+import { PageHeader, PlanLimitBanner } from "@/components/shared/Common";
 import Breadcrumbs from "@/components/shared/Breadcrumbs";
+import usePlanLimit from "@/hooks/usePlanLimit";
 import { toast } from "sonner";
 
 const blank = {
@@ -27,6 +28,7 @@ export default function ServiceForm() {
   const [loading, setLoading] = useState(false);
   const [deliverablesInput, setDeliverablesInput] = useState("");
   const [techInput, setTechInput] = useState("");
+  const { limitReached, limit, planName } = usePlanLimit("services", { skip: editing });
 
   useEffect(() => {
     api.get("/categories").then((r) => setCategories(r.data));
@@ -77,6 +79,8 @@ export default function ServiceForm() {
         title={editing ? "Xidməti redaktə et" : "Yeni xidmət əlavə et"}
         description={editing ? "Xidmət məlumatlarını yeniləyin" : "Müştərilərə təklif edəcəyiniz xidməti təsvir edin"}
       />
+
+      {!editing && limitReached && <PlanLimitBanner resourceLabel="xidmət" limit={limit} planName={planName} />}
 
       <form onSubmit={submit} className="space-y-6">
         <section className="bg-white border border-slate-200 rounded-xl p-6">
@@ -152,7 +156,7 @@ export default function ServiceForm() {
         </section>
 
         <div className="flex gap-3">
-          <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 h-11 px-6" data-testid="srv-submit">
+          <Button type="submit" disabled={loading || (!editing && limitReached)} className="bg-blue-600 hover:bg-blue-700 h-11 px-6" data-testid="srv-submit">
             {loading ? "Yadda saxlanır..." : editing ? "Yenilə" : "Yarat"}
           </Button>
           <Button type="button" variant="outline" asChild className="h-11"><Link to="/provider/services">Ləğv et</Link></Button>
