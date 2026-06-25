@@ -33,7 +33,7 @@ export default function Header() {
               <span className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white">
                 <Briefcase className="w-5 h-5" />
               </span>
-              <span className="text-slate-900">BizMarket</span>
+              <span className="text-slate-900">Brify</span>
             </Link>
             <nav className="hidden md:flex items-center gap-1">
               {nav.map((n) => (

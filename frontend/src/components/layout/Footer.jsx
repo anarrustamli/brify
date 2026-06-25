@@ -12,7 +12,7 @@ export default function Footer() {
               <span className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white">
                 <Briefcase className="w-5 h-5" />
               </span>
-              <span className="text-white font-bold text-xl">BizMarket</span>
+              <span className="text-white font-bold text-xl">Brify</span>
             </div>
             <p className="text-sm leading-relaxed max-w-sm">
               Azərbaycanın etibarlı B2B xidmət marketplace-i. Düzgün agentliyi tapın, brief göndərin və saatlar içində təkliflər alın.
@@ -47,7 +47,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="mt-12 pt-8 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4 text-sm">
-          <p>© {new Date().getFullYear()} BizMarket. Bütün hüquqlar qorunur.</p>
+          <p>© {new Date().getFullYear()} Brify. Bütün hüquqlar qorunur.</p>
           <p className="text-slate-400">Bakı, Azərbaycan • AZN</p>
         </div>
       </div>

@@ -22,6 +22,7 @@ const buyerNav = [
   { to: "/buyer/briefs/new", label: "Brief yarat", icon: FilePlus, exact: true },
   { to: "/buyer/briefs", label: "Mənim brieflər", icon: FileText, active: ["/buyer/briefs/"], exclude: ["/buyer/briefs/new"] },
   { to: "/buyer/proposals", label: "Gələn təkliflər", icon: Inbox },
+  { to: "/buyer/projects", label: "Layihələrim", icon: Briefcase },
   { to: "/buyer/messages", label: "Mesajlar", icon: MessageSquare },
   { to: "/buyer/settings", label: "Ayarlar", icon: Settings },
 ];
@@ -38,10 +39,12 @@ const providerNav = [
   { to: "/provider/statistics", label: "Statistika", icon: BarChart3 },
   { to: "/provider/reviews", label: "Rəylər", icon: Star },
   { to: "/provider/leads", label: "Lead-lər", icon: Inbox },
+  { to: "/provider/open-briefs", label: "Open Brief-lər", icon: Search },
   { to: "/provider/proposals", label: "Təkliflərim", icon: ClipboardList },
   { to: "/provider/messages", label: "Mesajlar", icon: MessageSquare },
   { to: "/provider/analytics", label: "Analitika", icon: BarChart3 },
   { to: "/provider/advertising", label: "Reklam", icon: Megaphone },
+  { to: "/provider/verification", label: "Doğrulama", icon: ShieldCheck },
   { to: "/provider/billing", label: "Abunəlik", icon: CreditCard },
   { to: "/provider/settings", label: "Ayarlar", icon: Settings },
 ];
@@ -107,11 +110,11 @@ export default function DashboardLayout({ role }) {
       >
         <div className="h-full flex flex-col">
           <div className={`h-16 flex items-center border-b border-slate-200 transition-all ${collapsed ? "px-3 lg:justify-center" : "px-5 justify-between"}`}>
-            <Link to="/" className={`flex min-w-0 items-center gap-2 font-bold tracking-tight ${collapsed ? "lg:justify-center" : ""}`} title="BizMarket">
+            <Link to="/" className={`flex min-w-0 items-center gap-2 font-bold tracking-tight ${collapsed ? "lg:justify-center" : ""}`} title="Brify">
               <span className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white">
                 <Briefcase className="w-4 h-4" />
               </span>
-              <span className={`text-slate-900 transition-all duration-200 ${collapsed ? "lg:w-0 lg:opacity-0 lg:sr-only" : ""}`}>BizMarket</span>
+              <span className={`text-slate-900 transition-all duration-200 ${collapsed ? "lg:w-0 lg:opacity-0 lg:sr-only" : ""}`}>Brify</span>
             </Link>
             <div className="flex items-center gap-1">
               <button

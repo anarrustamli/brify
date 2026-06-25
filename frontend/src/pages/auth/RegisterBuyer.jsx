@@ -39,7 +39,7 @@ export default function RegisterBuyer() {
       <div className="w-full max-w-md">
         <Link to="/" className="flex items-center justify-center gap-2 font-bold text-xl mb-6">
           <span className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white"><Briefcase className="w-5 h-5" /></span>
-          BizMarket
+          Brify
         </Link>
         <div className="bg-white border border-slate-200 rounded-2xl p-7 shadow-sm">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Buyer qeydiyyatı</h1>

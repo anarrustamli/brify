@@ -59,13 +59,13 @@ export default function Login() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,#3b82f6,transparent_50%)] opacity-30" />
         <Link to="/" className="relative flex items-center gap-2 font-bold text-xl">
           <span className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center"><Briefcase className="w-5 h-5" /></span>
-          BizMarket
+          Brify
         </Link>
         <div className="relative">
           <h2 className="text-3xl font-bold leading-tight">Azərbaycanın B2B xidmət marketplace-i</h2>
           <p className="text-slate-300 mt-3">500+ doğrulanmış şirkət, real rəylər və brief-RFQ sistemi.</p>
         </div>
-        <div className="relative text-sm text-slate-400">© BizMarket 2026</div>
+        <div className="relative text-sm text-slate-400">© Brify 2026</div>
       </div>
 
       <div className="flex items-center justify-center p-6 sm:p-12 bg-slate-50">

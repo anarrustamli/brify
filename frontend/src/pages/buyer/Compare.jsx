@@ -218,7 +218,7 @@ export default function BuyerCompare() {
       ) : (
         <div id="compare-report" className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-[0_0_0_1px_rgba(15,23,42,0.03),0_1px_2px_rgba(15,23,42,0.05)]">
           <div className="border-b border-slate-200 bg-slate-950 p-5 text-white">
-            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-200">BizMarket compare report</div>
+            <div className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-200">Brify compare report</div>
             <div className="mt-1 flex flex-wrap items-end justify-between gap-3">
               <div>
                 <h2 className="text-2xl font-bold">{tabTitle(activeTab)} qarşılaşdırması</h2>

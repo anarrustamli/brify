@@ -64,6 +64,9 @@ import ProviderAnalytics from "@/pages/provider/Analytics";
 import ProviderAdvertising from "@/pages/provider/Advertising";
 import ProviderBilling from "@/pages/provider/Billing";
 import ProviderSettings from "@/pages/provider/Settings";
+import ProviderVerification from "@/pages/provider/Verification";
+import ProviderOpenBriefs from "@/pages/provider/OpenBriefs";
+import BuyerProjects from "@/pages/buyer/Projects";
 
 import AdminDashboard from "@/pages/admin/Dashboard";
 import AdminCompanies from "@/pages/admin/Companies";
@@ -78,6 +81,7 @@ import AdminSettings from "@/pages/admin/Settings";
 import AdminIntegrations from "@/pages/admin/Integrations";
 import AdminAuditLogs from "@/pages/admin/AuditLogs";
 import AdminResourcePage from "@/pages/admin/ResourcePage";
+import AdminVerification from "@/pages/admin/Verification";
 
 function ProtectedRoute({ roles, children }) {
   const { user, loading } = useAuth();
@@ -158,6 +162,7 @@ function App() {
               <Route path="/buyer/briefs/:id/edit" element={<BuyerCreateBrief />} />
               <Route path="/buyer/briefs/:id" element={<BuyerBriefDetail />} />
               <Route path="/buyer/proposals" element={<BuyerProposals />} />
+              <Route path="/buyer/projects" element={<BuyerProjects />} />
               <Route path="/buyer/messages" element={<BuyerMessages />} />
               <Route path="/buyer/settings" element={<BuyerSettings />} />
             </Route>
@@ -187,6 +192,8 @@ function App() {
               <Route path="/provider/statistics" element={<ProviderStatistics />} />
               <Route path="/provider/reviews" element={<ProviderReviewsPage />} />
               <Route path="/provider/leads" element={<ProviderLeads />} />
+              <Route path="/provider/open-briefs" element={<ProviderOpenBriefs />} />
+              <Route path="/provider/verification" element={<ProviderVerification />} />
               <Route path="/provider/proposals" element={<ProviderProposalsSent />} />
               <Route path="/provider/messages" element={<BuyerMessages />} />
               <Route path="/provider/analytics" element={<ProviderAnalytics />} />
@@ -207,7 +214,7 @@ function App() {
               <Route path="/admin/leads" element={<AdminLeads />} />
               <Route path="/admin/briefs" element={<AdminBriefs />} />
               <Route path="/admin/proposals" element={<AdminResourcePage resource="proposals" />} />
-              <Route path="/admin/verification" element={<AdminResourcePage resource="verification-requests" />} />
+              <Route path="/admin/verification" element={<AdminVerification />} />
               <Route path="/admin/ads" element={<AdminAds />} />
               <Route path="/admin/ad-placements" element={<AdminResourcePage resource="ad-placements" />} />
               <Route path="/admin/plans" element={<AdminPlans />} />

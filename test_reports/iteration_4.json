@@ -1,0 +1,58 @@
+{
+  "summary": "Iteration-4 backend tests for Brify Phase-1 production features. Created /app/backend/tests/test_production_phase1.py with 28 tests covering verification, protected reviews, subscription lifecycle, admin plans v2, open brief marketplace, payment provider status, background jobs, audit/RBAC, and migration smoke. 25/28 pass, 2 environment-driven skips, 1 REAL backend bug (admin duplicate plan returns 500 due to ObjectId leak). Pre-existing regression suite: 53/55 pass.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/admin/plans/{pid}/duplicate",
+        "issue": "Returns 500 Internal Server Error: 'ObjectId' object is not iterable. Root cause: business_routes.py admin_duplicate_plan() builds new_doc from src, calls new_doc.pop('_id', None), then await _db().plans.insert_one(new_doc). Motor mutates new_doc IN-PLACE to add the new ObjectId after insert. The function then returns new_doc which now contains a non-serializable ObjectId. Fix: re-fetch from DB with projection {'_id': 0}, OR call _strip(new_doc) AFTER insert, OR insert a copy: await _db().plans.insert_one({**new_doc}).",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "POST /api/me/verification/submit",
+        "issue": "Validation order: server checks 409 (pending exists) BEFORE 400 (legal_name/tax_id required). If a provider already has a pending request, sending an empty body returns 409 instead of 400. Recommend validating required fields first so error messages are deterministic regardless of state."
+      },
+      {
+        "endpoint": "POST /api/proposals",
+        "issue": "Existing regression test (test_proposal_create_and_sent) now fails with 403 'You must unlock this brief before sending a proposal'. This is the intended new lead-lifecycle enforcement (Phase 1), but it is a BREAKING change for the legacy proposal-creation flow. Legacy flows that bypassed the lead/unlock step now fail. Confirm that the existing seeded leads contain unlocked status for the demo data; otherwise providers cannot send proposals even on demo briefs."
+      },
+      {
+        "endpoint": "GET /api/blog",
+        "issue": "Regression test 'test_ads_and_blog' fails because the endpoint now returns {items, total, page, limit} (paginated) instead of a plain list. Either the endpoint changed unintentionally or the legacy test needs updating."
+      }
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_production_phase1.py",
+    "/app/test_reports/pytest/iteration_4_phase1.xml",
+    "/app/test_reports/pytest/iteration_4_regression.xml"
+  ],
+  "action_items": [
+    "Fix admin_duplicate_plan in business_routes.py:634 to strip _id after Motor insert. Suggested fix: replace `return new_doc` with `return await _db().plans.find_one({'id': new_doc['id']}, {'_id': 0})`.",
+    "Consider reordering verification/submit validation: check required fields (400) before checking for existing pending (409) for consistent client UX.",
+    "Confirm /api/blog response shape change is intentional; either revert or update the legacy regression test in backend_test.py.",
+    "Audit seeded demo data to ensure providers can send proposals to demo briefs — they currently need an unlocked lead first. Either seed unlocked leads for demo provider or expose a smoother first-time flow."
+  ],
+  "critical_code_review_comments": [
+    "business_routes.py admin_duplicate_plan: Motor's insert_one() mutates the doc in place. Pattern of mutate-then-return-the-same-dict is unsafe; always re-fetch with {'_id': 0} projection or strip again. Same risk anywhere insert_one is followed by `return doc`.",
+    "Validation order in submit_verification: HTTPException(409) for existing request precedes HTTPException(400) for missing required fields. Field-level validation should run first.",
+    "server.py is now 3164 lines and business_routes.py 811 lines — past the 700-line threshold; consider splitting business_routes.py into verification_routes/projects_routes/billing_routes/plans_routes/open_briefs_routes for maintainability.",
+    "business_routes.py:172 declares @router.get('/me/plan-status-v2') as a placeholder that raises 500 'not wired' if hit before _register_provider_endpoints() runs. Defensive but a real route should not be declared at all if intended to be replaced.",
+    "OpenBriefs unlock endpoint silently returns the existing lead if provider already unlocked — but does not respect lead.status='expired'. Worth confirming whether re-unlocking should be allowed when previous lead expired."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_production_phase1.py (new)"
+  ],
+  "success_rate": {
+    "backend_phase1_new": "89% (25/28 — 1 backend bug, 0 test bugs after fixture fix; 2 environment-driven skips for protected-review chain & briefs migration)",
+    "backend_regression": "96% (53/55 — 2 stale tests caused by new lead-unlock enforcement and blog shape change)"
+  },
+  "test_credentials": "Used /app/memory/test_credentials.md — admin@bizmarket.az/Admin123!, buyer@bizmarket.az/Buyer123!, provider@bizmarket.az/Provider123!. Demo-login API /api/auth/demo-login works for all three roles and returns JWT + user.",
+  "seed_data_creation": "Tests create TEST_-prefixed verification requests and TEST_starter_<uuid> plans. Plans persist (no cleanup) because admin plan-delete endpoint is not exposed; future runs of test_full_flow create new uniquely-slugged plans, so no collision but plans table will accumulate test rows.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Phase-1 production features mostly verified. ONE backend bug: admin plan duplicate returns 500 (ObjectId leak). Verification ordering and lead-unlock enforcement are NEW behaviors that may need product/test reconciliation. After E1 patches admin_duplicate_plan, re-run `pytest /app/backend/tests/test_production_phase1.py -v` and expect 26/28 (2 environment skips). The TestProtectedReviews::test_full_chain skip is because all seeded proposals are already accepted; if E1 wants this validated, seed at least one pending proposal for buyer or have the test create a brief+proposal chain. TestMigrations::test_briefs_visibility_field skips because /api/briefs returns 404 in this build — visibility field still verified indirectly via open-briefs filter which works.",
+  "rca_of_the_issue": "POST /api/admin/plans/{pid}/duplicate 500 reproduction: 1) admin demo-login; 2) POST /api/admin/plans with new slug to create base plan; 3) POST /api/admin/plans/{pid}/duplicate with {slug:'something'}. Backend log shows: TypeError: 'ObjectId' object is not iterable in fastapi.encoders. RCA: business_routes.py:643-647 mutates new_doc via insert_one, then returns new_doc which now contains the Motor-injected _id ObjectId. Mitigation: change line 650 from `return new_doc` to `return await _db().plans.find_one({'id': new_doc['id']}, {'_id': 0})` so the response is a serializable dict."
+}

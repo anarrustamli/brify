@@ -55,7 +55,7 @@ export default function ProviderLanding() {
       </section>
 
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 text-center">Niyə BizMarket?</h2>
+        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 text-center">Niyə Brify?</h2>
         <div className="grid md:grid-cols-3 gap-6 mt-10">
           {[
             { t: "Hazır alıcı bazası", d: "Aktiv brief-lər və hazır büdcəli müştərilərə birbaşa çıxış." },

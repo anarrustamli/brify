@@ -376,12 +376,30 @@ async def invite_company_to_brief(
         raise HTTPException(409, "Bu brief artıq bu şirkətə göndərilib")
 
     sent_at = now_iso()
+    # Per-plan lead limit + lock if over (still allow create as 'locked' to preserve auditing).
+    locked = False
+    try:
+        from business_services import PlanLimitService
+        within, used, max_leads = await PlanLimitService(db).check_monthly_leads(company)
+        if not within:
+            locked = True
+    except Exception:
+        # Never block buyer invites because of plan-service errors
+        pass
+
+    expires_at = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
     lead_doc = {
         "brief_id": brief["id"], "company_id": company_id,
-        "buyer_id": buyer["id"], "status": "new", "sent_at": sent_at,
+        "buyer_id": buyer["id"],
+        "status": "locked" if locked else "new",
+        "locked_reason": "monthly_lead_limit" if locked else "",
+        "source": "invited",
+        "sent_at": sent_at,
+        "expires_at": expires_at,
         "service_id": (service_id or existing.get("service_id", "")) if existing else (service_id or ""),
         "portfolio_id": (portfolio_id or existing.get("portfolio_id", "")) if existing else (portfolio_id or ""),
         "resend_count": (existing.get("resend_count", 0) + 1) if existing else 0,
+        "updated_at": sent_at,
     }
     if existing:
         await db.leads.update_one({"brief_id": brief["id"], "company_id": company_id}, {"$set": lead_doc})
@@ -389,16 +407,33 @@ async def invite_company_to_brief(
         lead_doc.update({"id": new_id(), "created_at": sent_at})
         await db.leads.insert_one(lead_doc)
     await db.briefs.update_one({"id": brief["id"]}, {"$addToSet": {"invited_companies": company_id}})
+
+    # Bump monthly lead counter (only on new leads, not on resend)
+    if not existing:
+        try:
+            from business_services import PlanLimitService
+            await PlanLimitService(db).increment_counter(company, "leads_received_count", 1)
+        except Exception:
+            pass
+
     if company.get("owner_id"):
-        await create_notification(
-            company["owner_id"],
-            "brief_invite",
-            "Yeni brief dəvəti",
-            f"{buyer.get('name', 'Buyer')} sizi \"{brief.get('title', 'Brief')}\" brief-inə dəvət etdi.",
-            entity_id=brief["id"],
-            href="/provider/leads",
-        )
-    return {"ok": True, "resent": bool(existing), "sent_at": sent_at}
+        if locked:
+            await create_notification(
+                company["owner_id"],
+                "lead_locked_due_to_limit",
+                "Yeni lead aylıq limit səbəbi ilə kilidlənib",
+                "Aylıq lead limitiniz dolub. Planı yüksəltməklə bu lead-ə baxa bilərsiniz.",
+                entity_id=brief["id"], href="/provider/billing",
+            )
+        else:
+            await create_notification(
+                company["owner_id"],
+                "brief_invite",
+                "Yeni brief dəvəti",
+                f"{buyer.get('name', 'Buyer')} sizi \"{brief.get('title', 'Brief')}\" brief-inə dəvət etdi.",
+                entity_id=brief["id"], href="/provider/leads",
+            )
+    return {"ok": True, "resent": bool(existing), "sent_at": sent_at, "locked": locked}
 
 
 # ------- Schemas -------
@@ -1687,9 +1722,22 @@ async def create_proposal(payload: ProposalIn, user: dict = Depends(require_role
     company = await db.companies.find_one({"owner_id": user["id"]})
     if not company:
         raise HTTPException(404, "Company not found")
-    brief = await db.briefs.find_one({"id": payload.brief_id}, {"_id": 0, "title": 1, "buyer_id": 1})
+    brief = await db.briefs.find_one({"id": payload.brief_id}, {"_id": 0, "title": 1, "buyer_id": 1, "status": 1, "expires_at": 1})
     if not brief:
         raise HTTPException(404, "Brief not found")
+    if brief.get("status") not in ("open", "active", None, ""):
+        raise HTTPException(400, "Brief is closed and not accepting proposals")
+    # Brief expiry check
+    if brief.get("expires_at") and brief["expires_at"] < now_iso():
+        raise HTTPException(400, "Brief has expired")
+    # Lead must exist + not be locked/expired
+    lead = await db.leads.find_one({"brief_id": payload.brief_id, "company_id": company["id"]}, {"_id": 0})
+    if not lead:
+        raise HTTPException(403, "You must unlock this brief before sending a proposal")
+    if lead.get("status") == "locked":
+        raise HTTPException(402, "Lead is locked due to plan limit. Upgrade to send a proposal.")
+    if lead.get("status") == "expired":
+        raise HTTPException(400, "Lead has expired")
     existing = await db.proposals.find_one({"brief_id": payload.brief_id, "company_id": company["id"]})
     if existing:
         raise HTTPException(400, "Bu brief üçün artıq təklif göndərmisiniz")
@@ -1701,6 +1749,17 @@ async def create_proposal(payload: ProposalIn, user: dict = Depends(require_role
     }
     await db.proposals.insert_one(doc)
     await db.briefs.update_one({"id": payload.brief_id}, {"$inc": {"proposals_count": 1}})
+    # Update lead status to proposal_sent
+    await db.leads.update_one(
+        {"id": lead["id"]},
+        {"$set": {"status": "proposal_sent", "proposal_sent_at": now_iso(), "updated_at": now_iso()}},
+    )
+    # bump monthly proposals counter
+    try:
+        from business_services import PlanLimitService
+        await PlanLimitService(db).increment_counter(company, "proposals_sent_count", 1)
+    except Exception:
+        pass
     # Notify buyer
     if brief.get("buyer_id"):
         await create_notification(
@@ -1739,6 +1798,25 @@ async def update_proposal_status(pid: str, body: dict, user: dict = Depends(get_
     if not brief or brief.get("buyer_id") != user.get("id"):
         raise HTTPException(403, "Forbidden")
     await db.proposals.update_one({"id": pid}, {"$set": {"status": status}})
+    # Auto-create project on acceptance (enables verified review later)
+    if status == "accepted":
+        try:
+            from business_routes import ensure_project_for_accepted_proposal
+            await ensure_project_for_accepted_proposal(db, proposal, brief)
+            # update lead status
+            await db.leads.update_one(
+                {"brief_id": proposal.get("brief_id"), "company_id": proposal.get("company_id")},
+                {"$set": {"status": "accepted", "accepted_at": now_iso(), "updated_at": now_iso()}},
+            )
+            # update proposal sent timestamp on lead
+            await db.proposals.update_one({"id": pid}, {"$set": {"proposal_sent_at": now_iso()}})
+        except Exception as exc:
+            logging.getLogger(__name__).warning(f"project creation failed: {exc}")
+    elif status == "rejected":
+        await db.leads.update_one(
+            {"brief_id": proposal.get("brief_id"), "company_id": proposal.get("company_id")},
+            {"$set": {"status": "rejected", "rejected_at": now_iso(), "updated_at": now_iso()}},
+        )
     # Notify provider when buyer accepts/rejects
     if status in ("accepted", "rejected") and proposal.get("company_id"):
         company = await db.companies.find_one({"id": proposal["company_id"]}, {"_id": 0, "owner_id": 1})
@@ -3026,6 +3104,26 @@ async def buyer_dashboard(user: dict = Depends(require_role("buyer"))):
 
 app.include_router(api_router)
 
+# Brify production routes (verification, projects, protected reviews, open briefs,
+# lead lifecycle, plan management v2, admin billing actions, dynamic plans).
+# Mounted FIRST so explicit routes win over the generic /admin/{resource} fallback.
+try:
+    from business_routes import init as _init_business_routes, finalize as _finalize_business_routes
+    _business_router = _init_business_routes(
+        db=db,
+        get_current_user=get_current_user,
+        require_role=require_role,
+        write_audit=write_audit,
+        create_notification=create_notification,
+        require_admin_module=_require_admin_module,
+    )
+    _finalize_business_routes()
+    # Include with overriding priority by inserting routes at the front.
+    for _route in _business_router.routes:
+        app.router.routes.insert(0, _route)
+except Exception as _err:
+    logging.getLogger(__name__).exception(f"business_routes wiring failed: {_err}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -3045,6 +3143,20 @@ async def startup_seed():
         await run_seed(db)
     except Exception as e:
         logger.exception(f"Seed error: {e}")
+
+    # --- Brify production wiring ---
+    try:
+        from db_setup import ensure_indexes, run_migrations
+        await ensure_indexes(db)
+        await run_migrations(db)
+    except Exception as e:
+        logger.exception(f"Indexes/migrations error: {e}")
+
+    try:
+        from jobs_scheduler import start_runner
+        start_runner(db, interval=int(os.environ.get("JOBS_INTERVAL_SECONDS", "900")))
+    except Exception as e:
+        logger.exception(f"Jobs runner error: {e}")
 
 
 @app.on_event("shutdown")
