@@ -1,0 +1,39 @@
+{
+  "summary": "Iteration-10 verifies the two iteration-9 fixes: (1) CompanyProfile case-study metrics chip render and (2) cleanup of TEST/Copy/Starter plans. All three target company profiles (/companies/nexora-digital, /companies/datapulse-analytics, /companies/bakı-software-studio) now load WITHOUT the 'Objects are not valid as a React child' runtime error. Case-study section renders correctly with chip pills (e.g. 'Vaxt: 12 həftə', 'Büdcə: 65k AZN', 'Komanda: 8 nəfər'). /api/plans returns exactly 4 entries [free,pro,premium,enterprise] and /pricing renders 4 plan cards with no TEST/Copy/Starter remnants. Public /api/companies/nexora-digital response now includes case_studies with full {title, challenge, approach, results, metrics, image_url}. Backend regression: 56/56 PASSED (45 iteration-7 + 11 iteration-9). Demo-login provider → /api/me/case-studies smoke returns 1 case study for Nexora Digital with metrics as list of {k,v} objects. NOTE: One environment-level hiccup — the dev frontend bundle was stale on first visit (hot-reload missed the CompanyProfile.jsx edit); a supervisor restart of frontend cleared it and the fix took effect. Recommend main agent be aware HMR may not always pick up edits inside conditional render trees.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/companies/:slug → Case studies section", "issues": ["Schema drift: case_study seed writes the field 'approach' but CompanyProfile.jsx line 594 renders {item.solution} for the 'Həll' column, so the middle column is visibly empty even though backend has data. Cosmetic only — no crash. Either rename API field approach→solution or update the JSX to read item.approach."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration7_phase2_split.py",
+    "/app/backend/tests/test_iteration9_seed_richness.py",
+    "/app/test_reports/pytest/iter10_regression.xml"
+  ],
+  "action_items": [
+    "(Optional / cosmetic) Fix the case-study 'Həll' column to render item.approach instead of item.solution in /app/frontend/src/pages/public/CompanyProfile.jsx line 594, since seed writes 'approach' not 'solution'.",
+    "(Process) Frontend HMR did not auto-pick up the CompanyProfile.jsx edit; main agent should issue 'sudo supervisorctl restart frontend' after large conditional-tree edits to be safe."
+  ],
+  "critical_code_review_comments": [
+    "CompanyProfile.jsx now properly handles both array-of-{k,v} and string metrics for case studies — backward compatibility preserved.",
+    "Schema drift remaining: case_study object exposes both `approach` (seed) and is consumed as `solution` (JSX). Standardize on one name.",
+    "Public GET /api/companies/{slug} response now correctly enriches with services/portfolio/case_studies/reviews/team/certificates — verified for nexora-digital."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (56/56 pytest, all manual curls 200 OK)",
+    "frontend": "100% on the 3 target company profile pages + /pricing"
+  },
+  "test_credentials": "admin@bizmarket.az/Admin123!, buyer@bizmarket.az/Buyer123!, provider@bizmarket.az/Provider123! — verified via /api/auth/demo-login.",
+  "seed_data_creation": "none",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iteration-9 critical bug (CompanyProfile crash on case_study.metrics) is FIXED and verified. Pricing leftovers are CLEANED. Only remaining cosmetic finding: the 'Həll' column of case studies is empty because seed writes 'approach' and JSX reads 'solution'. If main agent fixes this, just re-open /companies/nexora-digital and confirm the Həll column shows '12 həftəlik MVP cycle: discovery → UX → development...'. No backend retest needed — 56/56 still green.",
+  "rca of the issue": "Original crash: seed_data.CASE_STUDY_TPL.metrics_kv is a list[{k,v}] and was returned verbatim from /api/public/companies/{id}/case-studies; CompanyProfile.jsx tried to render it as a React child. Fix verified at lines 597–607: Array.isArray branch renders chips, string fallback preserved. Initial verification still showed the crash because the webpack dev-server HMR had not detected the edit (bundle missing 'Array.isArray(item.metrics)' string). After `supervisorctl restart frontend` the bundle rebuilt (now contains the new code, bundle size 12,364,765 bytes) and all three company pages render correctly with no runtime error."
+}

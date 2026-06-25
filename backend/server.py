@@ -906,10 +906,13 @@ async def get_company(slug: str):
         raise HTTPException(404, "Company not found")
     services = await db.services.find({"company_id": company["id"]}, {"_id": 0}).to_list(100)
     portfolio = await db.portfolio.find({"company_id": company["id"]}, {"_id": 0}).to_list(100)
-    reviews = await db.reviews.find({"company_id": company["id"], "status": "approved"}, {"_id": 0}).sort("created_at", -1).to_list(50)
+    case_studies = await db.case_studies.find(
+        {"company_id": company["id"], "visibility": {"$ne": "private"}}, {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    reviews = await db.reviews.find({"company_id": company["id"], "status": {"$in": ["approved", "published"]}}, {"_id": 0}).sort("created_at", -1).to_list(50)
     team = await db.team_members.find({"company_id": company["id"]}, {"_id": 0}).to_list(50)
     certs = await db.certificates.find({"company_id": company["id"]}, {"_id": 0}).to_list(50)
-    return {**company, "services": services, "portfolio": portfolio, "reviews": reviews, "team": team, "certificates": certs}
+    return {**company, "services": services, "portfolio": portfolio, "case_studies": case_studies, "reviews": reviews, "team": team, "certificates": certs}
 
 
 class CompanyUpdate(BaseModel):

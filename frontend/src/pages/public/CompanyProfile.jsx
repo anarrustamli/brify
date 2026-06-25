@@ -594,7 +594,17 @@ export default function CompanyProfile({ buyerMode = false }) {
                   <div><div className="text-xs font-bold uppercase tracking-wide text-slate-400">Həll</div><p className="mt-2 text-sm leading-6 text-slate-600">{item.solution}</p></div>
                   <div><div className="text-xs font-bold uppercase tracking-wide text-slate-400">Nəticə</div><p className="mt-2 text-sm font-semibold leading-6 text-emerald-700">{item.results}</p></div>
                 </div>
-                {item.metrics && <div className="mt-5 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">{item.metrics}</div>}
+                {Array.isArray(item.metrics) && item.metrics.length > 0 ? (
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    {item.metrics.map((m) => (
+                      <span key={`${m.k}-${m.v}`} className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                        {m.k}: {m.v}
+                      </span>
+                    ))}
+                  </div>
+                ) : item.metrics ? (
+                  <div className="mt-5 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">{item.metrics}</div>
+                ) : null}
               </div>
             </article>
           ))}
