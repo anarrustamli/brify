@@ -1,0 +1,43 @@
+{
+  "summary": "Iteration-9 backend+frontend validation. Network-Error fix verified (REACT_APP_BACKEND_URL now resolves and axios calls succeed). Seed-data richness verified: 12 companies (>=12 OK), 72 services (>=50 OK), no 'TEST Company XYZ'. Demo provider = Elnur Hüseynov @ Nexora Digital with 4-6 services, 3-5 portfolio items, 1 case study (within 1-2 spec). iteration-7 regression suite re-runs 45/45 green. Index-as-key fix verified on /provider/reviews, /provider/advertising, /admin/dashboard, /admin/reviews — zero React duplicate-key warnings. CRITICAL bug found on public /companies/:slug profile page: 'Objects are not valid as a React child (found: object with keys {k, v})' — the new CASE_STUDY_TPL.metrics_kv list-of-objects shape mismatches the CompanyProfile.jsx rendering which expects metrics to be a string. The profile page completely crashes (body length 0) for any non-free-plan company (8 of 12 companies). Minor: /pricing shows leftover 'TEST Starter', 'TEST Starter (Copy)', 'Free (Copy)' plans alongside the 4 expected plans.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/plans", "issue": "Leftover seeded duplicate/test plans visible: 'TEST Starter', 'TEST Starter (Copy)', 'Free (Copy)'. Pricing page now renders 8 plan cards instead of expected 4."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "pages/public/CompanyProfile.jsx", "issue": "Page crashes (Uncaught runtime error: 'Objects are not valid as a React child (found: object with keys {k, v})') for every company that has a case study. RCA: seed_data.py line 548 stores case_studies.metrics as tpl['metrics_kv'] which is [{'k':...,'v':...}, ...]. CompanyProfile.jsx line 597 renders {item.metrics} directly as a React child. Fix options: (a) render as chips: item.metrics.map(m => <Chip>{m.k}: {m.v}</Chip>), or (b) join in seed_data.py to a string. Same line 572 renders portfolio.metrics which is a STRING (correct) — so only case-studies branch is broken.", "selector": "article a[href^='/companies/']", "priority": "CRITICAL"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/pricing", "issues": ["Shows 8 plans (Free, Free (Copy), Pro, Starter, Premium, Enterprise, TEST Starter, TEST Starter (Copy)) — duplicate/leftover seeded plans should be cleaned up."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration9_seed_richness.py",
+    "/app/test_reports/pytest/iter9_seed.xml",
+    "/app/test_reports/pytest/iter7_regression.xml"
+  ],
+  "action_items": [
+    "CRITICAL: Fix CompanyProfile.jsx line 597 to render case_study.metrics (array of {k,v}) as chips OR change seed_data.py to write metrics as a string. Without this, every non-free-plan company profile crashes (8 of 12 demo companies).",
+    "Cleanup leftover TEST/duplicate plans from DB so /pricing shows the 4 documented plans only (Free, Pro, Premium, Enterprise)."
+  ],
+  "critical_code_review_comments": [
+    "Schema drift: seed_data.py introduced a richer {k,v} metrics shape for case_studies without updating the consumer (CompanyProfile.jsx). Recommend an isomorphic shape (always string) OR introduce a metrics_kv field with proper renderer.",
+    "/api/public/companies/{id}/case-studies and /api/me/case-studies return identical schemas; the provider listing page (CaseStudies.jsx) does not consume metrics, so it survives, but any future consumer must handle the array shape.",
+    "Pricing page renders all DB plans without filtering by status/visibility — consider seed cleanup or query filter (status='active', plan code IN canonical list)."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (11/11 new + 45/45 iteration7 regression)",
+    "frontend": "85% — homepage, /companies listing, all provider pages, all admin pages, /pricing OK; /companies/:slug CRASHES for case-study-bearing companies"
+  },
+  "test_credentials": "admin@bizmarket.az/Admin123!, buyer@bizmarket.az/Buyer123!, provider@bizmarket.az/Provider123! — all via /api/auth/demo-login (verified working).",
+  "seed_data_creation": "none",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "After main agent fixes the {k,v} metrics rendering, re-test /companies/:slug for all 12 companies (especially Nexora Digital, DataPulse Analytics — non-free plans with case studies). The 11 backend tests in test_iteration9_seed_richness.py + 45 in test_iteration7_phase2_split.py should both stay green. Index-as-key fix is verified; no need to retest unless main agent touches those 4 files again.",
+  "rca of the issue": "seed_data.py:537-553 inserts case_studies with metrics=tpl['metrics_kv'] (a list of {'k': str, 'v': str} dicts). The endpoint /api/public/companies/{id}/case-studies returns this verbatim. CompanyProfile.jsx:597 renders `{item.metrics && <div>{item.metrics}</div>}` — when metrics is the array, React throws 'Objects are not valid as a React child'. Reproduction: open https://brify-preview.preview.emergentagent.com/companies/datapulse-analytics → red error overlay; body length 0. Mitigation: replace line 597 with `{Array.isArray(item.metrics) && item.metrics.length > 0 && <div className='mt-5 flex flex-wrap gap-2'>{item.metrics.map((m,i) => <span key={i} className='rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700'>{m.k}: {m.v}</span>)}</div>}` OR keep current branch and add a string-fallback branch."
+}

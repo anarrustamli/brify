@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import io
 import os
+import subprocess
 import time
 
 import pytest
@@ -270,7 +271,12 @@ class TestAllowDemoLoginFlag:
             assert new != original, ".env didn't contain ALLOW_DEMO_LOGIN=true"
             with open(env_path, "w") as f:
                 f.write(new)
-            os.system("sudo supervisorctl restart backend >/dev/null 2>&1")
+            subprocess.run(
+                ["sudo", "supervisorctl", "restart", "backend"],
+                check=False,
+                capture_output=True,
+                timeout=30,
+            )
             # wait for backend
             for _ in range(30):
                 try:
@@ -284,7 +290,12 @@ class TestAllowDemoLoginFlag:
         finally:
             with open(env_path, "w") as f:
                 f.write(original)
-            os.system("sudo supervisorctl restart backend >/dev/null 2>&1")
+            subprocess.run(
+                ["sudo", "supervisorctl", "restart", "backend"],
+                check=False,
+                capture_output=True,
+                timeout=30,
+            )
             for _ in range(30):
                 try:
                     if requests.get(f"{LOCAL_URL}/api/plans", timeout=2).status_code == 200:

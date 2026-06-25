@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict
 
@@ -78,7 +79,7 @@ async def _subscription_expiring_notify(db) -> Dict[str, Any]:
             if not company or not company.get("owner_id"):
                 continue
             await db.notifications.insert_one({
-                "id": __import__("uuid").uuid4().hex,
+                "id": uuid.uuid4().hex,
                 "user_id": company["owner_id"],
                 "type": "subscription_expiring",
                 "title": f"Abunəliyiniz {days_left} gün sonra bitir",

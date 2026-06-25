@@ -21,7 +21,7 @@ export default function Reviews() {
           <div key={r.id} className="bg-white border border-slate-200 rounded-xl p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="flex items-center gap-2"><span className="font-semibold">{r.user_name}</span><span className="flex items-center text-amber-500">{[...Array(5)].map((_, i) => <Star key={i} className={`w-3 h-3 ${i < r.rating ? "fill-amber-400" : "text-slate-200"}`} />)}</span><StatusBadge status={r.status} /></div>
+                <div className="flex items-center gap-2"><span className="font-semibold">{r.user_name}</span><span className="flex items-center text-amber-500">{[1,2,3,4,5].map((n) => <Star key={`star-${r.id}-${n}`} className={`w-3 h-3 ${n <= r.rating ? "fill-amber-400" : "text-slate-200"}`} />)}</span><StatusBadge status={r.status} /></div>
                 <h4 className="font-medium mt-2">{r.title}</h4>
                 <p className="text-sm text-slate-600 mt-1">{r.text}</p>
               </div>

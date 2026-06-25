@@ -22,7 +22,7 @@ export default function Advertising() {
       <PageHeader title="Reklam və Promoted yerləşdirmə" description="Görünürlüyünüzü artırın və daha çox lead qazanın" />
       {loading ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => <div key={i} className="h-48 animate-pulse rounded-xl border border-slate-200 bg-white" />)}
+          {["sk1","sk2","sk3"].map((sk) => <div key={sk} className="h-48 animate-pulse rounded-xl border border-slate-200 bg-white" />)}
         </div>
       ) : placements.length === 0 ? (
         <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-500">Hələ reklam paketi əlavə edilməyib.</div>

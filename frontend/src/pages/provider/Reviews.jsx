@@ -22,7 +22,7 @@ export default function ProviderReviews() {
         <div key={r.id} className="bg-white border border-slate-200 rounded-xl p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="flex items-center gap-2"><span className="font-semibold">{r.user_name}</span><span className="flex">{[...Array(5)].map((_, i) => <Star key={i} className={`w-3.5 h-3.5 ${i < r.rating ? "fill-amber-400 text-amber-400" : "text-slate-200"}`} />)}</span><StatusBadge status={r.status} /></div>
+              <div className="flex items-center gap-2"><span className="font-semibold">{r.user_name}</span><span className="flex">{[1,2,3,4,5].map((n) => <Star key={`star-${r.id}-${n}`} className={`w-3.5 h-3.5 ${n <= r.rating ? "fill-amber-400 text-amber-400" : "text-slate-200"}`} />)}</span><StatusBadge status={r.status} /></div>
               <h4 className="font-medium mt-2 text-slate-900">{r.title}</h4>
               <p className="text-sm text-slate-600 mt-1">{r.text}</p>
               <div className="text-xs text-slate-400 mt-2">{timeAgo(r.created_at)}</div>

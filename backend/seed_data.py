@@ -92,10 +92,156 @@ SAMPLE_SERVICES_TPL = [
     ("HR Konsaltinqi", "hr-services", "İşə qəbul, qiymətləndirmə və təlim", 1500, 5000, "Aylıq"),
 ]
 
+# Additional category-aligned services so every company gets 4-6 services that
+# match its declared categories. Used by the seeder when SAMPLE_SERVICES_TPL
+# entries don't cover the company's categories.
+CATEGORY_SERVICES = {
+    "seo": [
+        ("Texniki SEO Auditi", "Crawl analizi, sitemap, robots.txt, schema, Core Web Vitals optimallaşdırması", 1200, 3500, "2-3 həftə"),
+        ("Local SEO və Google Maps", "Yerli biznes üçün lokal axtarış sıralamasını yaxşılaşdırma", 800, 2500, "1-2 həftə"),
+        ("Link Building Kampaniyası", "Yüksək keyfiyyətli outreach və backlink strategiyası", 1500, 6000, "Aylıq"),
+    ],
+    "web-development": [
+        ("E-commerce Saytı (Shopify/Custom)", "Onlayn mağaza, ödəniş inteqrasiyası, məhsul kataloqu", 5000, 25000, "6-12 həftə"),
+        ("Landing Page Dizayn + İnkişaf", "Konversiya yönümlü tək səhifəli sayt", 1500, 5000, "2-3 həftə"),
+        ("Headless CMS İnteqrasiyası", "Sanity / Strapi / Contentful əsaslı sürətli kontent həlləri", 4000, 14000, "4-7 həftə"),
+    ],
+    "software-development": [
+        ("Custom SaaS MVP", "0-dan başlayaraq SaaS məhsul: backend + frontend + DevOps", 15000, 60000, "12-20 həftə"),
+        ("ERP / CRM Custom Tətbiqi", "Şirkətin biznes proseslərinə uyğunlaşdırılmış sistem", 12000, 50000, "10-16 həftə"),
+        ("Sistemlərarası API İnteqrasiyası", "1C, SAP, ödəniş gateway və üçüncü tərəf API-lar", 3000, 12000, "3-6 həftə"),
+    ],
+    "mobile-development": [
+        ("React Native iOS+Android", "Cross-platform mobile app, full feature set", 12000, 40000, "10-16 həftə"),
+        ("Mobile App Yeniləməsi", "Mövcud tətbiqdə performance + UX yeniləməsi", 6000, 20000, "6-10 həftə"),
+        ("App Store Optimizasiyası (ASO)", "ASO audit, screenshot dizaynı, sıralamanın yaxşılaşdırılması", 800, 3000, "2-4 həftə"),
+    ],
+    "branding": [
+        ("Tam Brend İdentifikasiyası", "Loqo, palette, typography, brand book və sosial templətlər", 3500, 12000, "4-6 həftə"),
+        ("Logo Redesign", "Mövcud loqonun müasirləşdirilməsi", 800, 2500, "1-2 həftə"),
+        ("Brend Strategiyası", "Positioning, dəyər təklifi, brand voice", 2500, 8000, "3-5 həftə"),
+    ],
+    "design": [
+        ("Mobile App UI/UX", "Wireframe, prototype və high-fidelity dizayn", 3000, 12000, "4-7 həftə"),
+        ("Design System", "Reusable component library və style guide", 4000, 14000, "5-8 həftə"),
+        ("Web App Redesign", "Mövcud SaaS / panel üçün UX audit + redizayn", 3500, 11000, "4-6 həftə"),
+    ],
+    "digital-marketing": [
+        ("Performance Marketing", "Google + Meta + TikTok kampaniyalarının idarəsi", 1800, 7000, "Aylıq"),
+        ("Marketing Strategiyası", "Funnel audit, channel mix, KPI dashboard", 2500, 8000, "3-4 həftə"),
+        ("Content Marketing", "Editorial calendar, makalələr və SEO-uyğun yazılar", 1200, 4500, "Aylıq"),
+    ],
+    "social-media": [
+        ("Sosial Media İdarəetmə", "Instagram / TikTok / LinkedIn — content + community", 900, 3500, "Aylıq"),
+        ("Influencer Marketing Kampaniyası", "Local influencer-lə sponsorlu çıxış", 1500, 8000, "1-2 həftə"),
+        ("Sosial Media Reklamları", "Hədəfli ads + retargeting", 1200, 5500, "Aylıq"),
+    ],
+    "video-production": [
+        ("Korporativ Reklam Çarxı", "30-60s yüksək keyfiyyətli reklam", 2500, 9000, "3-4 həftə"),
+        ("Məhsul Videosu", "Product showcase, animation, voiceover", 1500, 5500, "2-3 həftə"),
+        ("Sosial Media üçün Qısa Videolar", "Reels / TikTok aylıq paketi", 800, 3000, "Aylıq"),
+    ],
+    "pr": [
+        ("PR Kampaniyası", "Media outreach, press release, jurnalist əlaqələri", 2000, 8000, "Aylıq"),
+        ("Crisis Communications", "Reputasiya idarəsi və böhran kommunikasiyası", 3000, 12000, "tələbə görə"),
+    ],
+    "motion-design": [
+        ("Logo Animation", "İntro / outro üçün animasiyalı loqo", 600, 2500, "1-2 həftə"),
+        ("Explainer Video", "2D / 3D animasiya ilə məhsul izahı", 2000, 8000, "3-5 həftə"),
+    ],
+    "3d-design": [
+        ("Məhsul 3D Renderi", "Yüksək keyfiyyətli məhsul vizuallarının hazırlanması", 1200, 5000, "2-3 həftə"),
+        ("3D Animasiya", "Marketing və demo üçün 3D animasiya", 2500, 9000, "4-6 həftə"),
+    ],
+    "cloud-services": [
+        ("AWS / Azure Miqrasiyası", "On-prem → cloud miqrasiya planı və icrası", 5000, 25000, "5-10 həftə"),
+        ("Kubernetes İnfrastrukturu", "Production-ready k8s cluster setup + observability", 4500, 18000, "4-8 həftə"),
+        ("CI/CD Avtomatlaşdırma", "GitHub Actions / GitLab pipelines, release strategiyası", 2500, 9000, "3-5 həftə"),
+    ],
+    "cybersecurity": [
+        ("Penetration Testing", "Web app / API / network pentest, OWASP Top 10 audit", 3000, 12000, "3-5 həftə"),
+        ("SOC 2 Hazırlıq Konsaltinqi", "Type II audit-ə hazırlıq", 6000, 20000, "8-16 həftə"),
+        ("Security Monitoring (SIEM)", "Aylıq SOC monitoring və incident response", 2500, 9500, "Aylıq"),
+    ],
+    "it-support": [
+        ("Outsourced IT Support", "Aylıq SLA əsaslı texniki dəstək", 1200, 5000, "Aylıq"),
+        ("Network İnfrastruktur Setup", "Ofis şəbəkəsi, VPN, firewall qurulması", 2000, 8000, "2-4 həftə"),
+    ],
+    "ai-automation": [
+        ("LLM Chatbot Tətbiqi", "ChatGPT əsaslı dəstək / satış botu, knowledge-base inteqrasiyası", 2500, 12000, "3-6 həftə"),
+        ("AI Workflow Avtomatlaşdırma", "n8n / Make / Zapier ilə proseslərin avtomatlaşdırılması", 1800, 7000, "2-4 həftə"),
+        ("Data Analytics Dashboard", "BI dashboard (Looker / Metabase / PowerBI)", 3000, 11000, "4-6 həftə"),
+    ],
+    "consulting": [
+        ("Biznes Strategiya Konsaltinqi", "Növbəti 12 ay üçün go-to-market planı", 3500, 12000, "4-6 həftə"),
+        ("Əməliyyat Audit", "Proses audit, optimizasiya tövsiyyələri", 2000, 7500, "3-5 həftə"),
+        ("Digital Transformation", "Şirkətin tam rəqəmsallaşdırılması üçün roadmap", 4500, 16000, "8-12 həftə"),
+    ],
+    "hr-services": [
+        ("Senior Headhunting", "Yüksək vəzifələr üçün hədəfli işəqəbul", 2500, 10000, "4-8 həftə"),
+        ("HR Department Setup", "0-dan HR funksiyasının qurulması", 3500, 12000, "8-12 həftə"),
+        ("Employee Training Program", "Daxili təlim proqramının dizaynı və keçirilməsi", 1500, 6000, "tələbə görə"),
+    ],
+    "accounting": [
+        ("Aylıq Mühasibatlıq Outsource", "Tam mühasibatlıq xidməti, vergi hesabatları", 600, 2500, "Aylıq"),
+        ("Vergi Konsaltinqi", "Vergi planlaması və optimallaşdırma", 1500, 6000, "tələbə görə"),
+    ],
+    "legal-services": [
+        ("Korporativ Hüquqi Dəstək", "Aylıq retainer əsaslı korporativ hüquq", 1500, 5500, "Aylıq"),
+        ("Müqavilə Hazırlanması", "B2B müqavilələrin hazırlanması və yoxlanılması", 800, 3500, "1-3 həftə"),
+        ("M&A Dəstəyi", "Birləşmə və satınalma əməliyyatları üçün hüquqi dəstək", 8000, 30000, "tələbə görə"),
+    ],
+    "logistics": [
+        ("Anbar İdarəetmə Sistemi", "WMS qurulması və optimallaşdırılması", 4000, 14000, "6-10 həftə"),
+        ("Daşıma Optimizasiyası", "Yol planlaması, fleet management", 2500, 8500, "Aylıq"),
+    ],
+    "event-management": [
+        ("Korporativ Tədbir Təşkili", "Konfrans, gala, launch event", 5000, 25000, "tələbə görə"),
+        ("Konfrans Texniki Dəstəyi", "Səs, işıq, ekran, streaming", 2500, 10000, "tələbə görə"),
+    ],
+}
+
 PORTFOLIO_TPL = [
     ("Bank Mobil Tətbiqi Yenilənməsi", "Tech Bank", "Fintech", "Köhnəlmiş UX və zəif performans", "Sıfırdan yenidən dizayn və native arxitektura", "30% daha sürətli, 4.8 rating", "User retention +42%"),
     ("E-commerce Saytın Yenilənməsi", "AzShop", "E-commerce", "Aşağı konversiya nisbəti", "UX optimizasiya və A/B test", "Konversiya 2x artdı", "Aylıq gəlir +180%"),
     ("Marketinq Kampaniyası", "Healthcare Pro", "Healthcare", "Brend tanınma azlığı", "Multi-channel content strategiyası", "Lead 5x artdı", "ROI 320%"),
+    ("Tələbə Portal Sistemi", "BakuUni", "Education", "Manual prosesə görə vaxt itkisi", "Custom LMS + tələbə paneli", "Admin işi 60% azaldı", "Bütün proseslər avtomatlaşdı"),
+    ("Sığorta SaaS Platforması", "InsureX", "Fintech", "Mövcud sistemin scale problemi", "Mikroservis arxitektura + cloud miqrasiya", "Latency 3x azaldı", "Müştəri sayı +120%"),
+    ("Logistika İzləmə Sistemi", "FastLogic", "Logistics", "Sürücülər arasında kommunikasiya pisliyi", "Real-time GPS izləmə + mobile app", "Çatdırılma vaxtı 25% azaldı", "Müştəri məmnuniyyəti +35%"),
+    ("Telekom Müştəri Paneli", "Connecto", "Telecom", "Aşağı self-service rate", "Modern web portal + chatbot inteqrasiyası", "Çağrı mərkəzinə yük 40% azaldı", "NPS +18 puan"),
+    ("Real Estate Aqreqator", "BakiHomes", "Real Estate", "Çoxsaylı agentlik məlumatlarının fragmentasiyası", "Aqreqator platform + sıralama alqoritmi", "İlk 3 ayda 50k istifadəçi", "Top axtarış platforması"),
+    ("Restorant Sifariş Tətbiqi", "Yummy AZ", "Retail", "Yalnız zəng əsaslı sifarişlər", "Native iOS/Android tətbiq + QR menyu", "Sifarişlərin 65%-i tətbiqə keçdi", "Average order value +22%"),
+]
+
+# Case study templates — richer than portfolio (includes timeline + budget).
+CASE_STUDY_TPL = [
+    {
+        "title": "Fintech Startup-un 0-dan Launch-i",
+        "client_name": "PayMate",
+        "industry": "Fintech",
+        "challenge": "Müştəri ödəniş prosesini sadələşdirməyə ehtiyac vardı; ANR yüksək, abandonment 70%-ə çatmışdı.",
+        "approach": "12 həftəlik MVP cycle: discovery → UX → development → KYC inteqrasiyası → launch.",
+        "results": "Launch-dən 3 ay sonra: 25k aktiv user, abandonment 28%-ə düşdü, NPS 64.",
+        "metrics_kv": [{"k": "Vaxt", "v": "12 həftə"}, {"k": "Büdcə", "v": "65k AZN"}, {"k": "Komanda", "v": "8 nəfər"}],
+    },
+    {
+        "title": "Retail Brand-ın Onlayn Satışlarının 3x Böyüməsi",
+        "client_name": "Style Atelier",
+        "industry": "Retail",
+        "challenge": "Mövcud e-commerce mağaza zəif performansla, aşağı konversiya ilə işləyirdi.",
+        "approach": "Texniki audit → Shopify Plus miqrasiyası → CRO eksperimentləri → performans marketinq.",
+        "results": "12 ay ərzində onlayn gəlir 3.4x artdı, konversiya 1.2%-dən 3.8%-ə qalxdı.",
+        "metrics_kv": [{"k": "Vaxt", "v": "10 ay"}, {"k": "Müddət", "v": "Long-term partnership"}, {"k": "Aktiv müştəri", "v": "+180%"}],
+    },
+    {
+        "title": "Səhiyyə Şirkətinin SOC 2 Hazırlığı",
+        "client_name": "MediCare Plus",
+        "industry": "Healthcare",
+        "challenge": "Beynəlxalq müştərilərlə işləmək üçün SOC 2 Type II audit-ə hazırlıq lazımdı.",
+        "approach": "Boşluq analizi → policy hazırlığı → texniki kontrol implementasiyası → audit dəstəyi.",
+        "results": "6 ay ərzində SOC 2 Type II uğurla əldə edildi; beynəlxalq sövdələşmələr açıldı.",
+        "metrics_kv": [{"k": "Vaxt", "v": "6 ay"}, {"k": "Audit nəticə", "v": "Pass"}, {"k": "Yeni sövdələşmə", "v": "5 ölkə"}],
+    },
 ]
 
 BLOG_POSTS = [
@@ -256,8 +402,10 @@ async def run_seed(db):
             "created_at": days_ago(120 - idx * 5),
         })
 
-        # Services for company
-        for j, (sname, scat, sdesc, pmin, pmax, tl) in enumerate(SAMPLE_SERVICES_TPL[:3 + (idx % 3)]):
+        # Services for company — guarantee 4-6 category-matched services.
+        # First pass: any template service whose category matches this company.
+        services_added = []
+        for j, (sname, scat, sdesc, pmin, pmax, tl) in enumerate(SAMPLE_SERVICES_TPL):
             if scat not in c["cats"]:
                 continue
             await db.services.insert_one({
@@ -284,9 +432,47 @@ async def run_seed(db):
                 "clicks": 8 + j * 4,
                 "created_at": days_ago(60 - j * 3),
             })
+            services_added.append(sname)
+        # Second pass: pull from CATEGORY_SERVICES for every category the company declares
+        # so empty-handed companies (no template match) also get realistic services.
+        for cat in c["cats"]:
+            for k, (sname, sdesc, pmin, pmax, tl) in enumerate(CATEGORY_SERVICES.get(cat, [])):
+                if sname in services_added:
+                    continue
+                if len(services_added) >= 6:
+                    break
+                await db.services.insert_one({
+                    "id": new_id(),
+                    "company_id": cid,
+                    "company_name": c["name"],
+                    "company_logo": c["logo"],
+                    "company_rating": c["rating"],
+                    "company_verified": c["verified"],
+                    "name": sname,
+                    "category": cat,
+                    "subcategory": "",
+                    "description": sdesc,
+                    "price_min": pmin,
+                    "price_max": pmax,
+                    "timeline": tl,
+                    "deliverables": ["Discovery sessiya", "Aylıq hesabat", "Final çatdırılma"],
+                    "technologies": [],
+                    "industries": c["industries"],
+                    "status": "active",
+                    "sponsored": False,
+                    "featured": c["featured"] and len(services_added) == 0,
+                    "views": 30 + k * 17,
+                    "clicks": 4 + k * 2,
+                    "created_at": days_ago(45 - k * 5),
+                })
+                services_added.append(sname)
+            if len(services_added) >= 6:
+                break
 
-        # Portfolio
-        for k, (ptitle, pclient, pind, prob, sol, res, met) in enumerate(PORTFOLIO_TPL):
+        # Portfolio — pick 3-5 items per company, rotated through PORTFOLIO_TPL
+        portfolio_count = 3 + (idx % 3)
+        for k in range(portfolio_count):
+            ptitle, pclient, pind, prob, sol, res, met = PORTFOLIO_TPL[(idx + k) % len(PORTFOLIO_TPL)]
             await db.portfolio.insert_one({
                 "id": new_id(),
                 "company_id": cid,
@@ -343,6 +529,27 @@ async def run_seed(db):
                     "issuer": "International Standards Org",
                     "expiry_date": "2027-12-31",
                     "status": "active",
+                })
+
+        # Case studies — 1-2 per company, only for plans that support it
+        if c["plan"] != "free" if "plan" in c else True:
+            for cs_idx in range(min(2, 1 + (idx % 2))):
+                tpl = CASE_STUDY_TPL[(idx + cs_idx) % len(CASE_STUDY_TPL)]
+                await db.case_studies.insert_one({
+                    "id": new_id(),
+                    "company_id": cid,
+                    "title": tpl["title"],
+                    "client_name": tpl["client_name"],
+                    "industry": tpl["industry"],
+                    "service_type": c["cats"][0] if c["cats"] else "",
+                    "challenge": tpl["challenge"],
+                    "approach": tpl["approach"],
+                    "results": tpl["results"],
+                    "metrics": tpl["metrics_kv"],
+                    "image_url": f"https://images.unsplash.com/photo-{['1556761175-5973dc0f32e7', '1454165804606-c3d57bc86b40', '1573164574572-cb89e39749b4'][(idx + cs_idx) % 3]}?w=1200&h=700&fit=crop",
+                    "status": "published",
+                    "visibility": "public",
+                    "created_at": days_ago(40 - cs_idx * 7),
                 })
 
     # ----- Briefs by demo buyer -----

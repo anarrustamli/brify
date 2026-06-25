@@ -58,7 +58,7 @@ export default function AdminDashboard() {
           <ResponsiveContainer width="100%" height={260}>
             <PieChart>
               <Pie data={pieData} dataKey="value" nameKey="name" outerRadius={80} label>
-                {pieData.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
+                {pieData.map((entry, i) => <Cell key={`cell-${entry.name || i}`} fill={COLORS[i]} />)}
               </Pie>
               <Legend />
             </PieChart>
