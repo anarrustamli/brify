@@ -1,0 +1,84 @@
+{
+  "summary": "Iteration-7 covers Phase-2 modular backend split + DashboardLayout decomposition + ALLOW_DEMO_LOGIN env flag + EN i18n keys. Backend regression + new Phase-2 tests all GREEN (84 passed, 2 skipped). Frontend layout decomposition is fully functional. CRITICAL i18n integration bug found: EN keys were added to /app/frontend/src/lib/i18n.jsx but the four target page components (Billing.jsx, Verification.jsx, Projects.jsx, OpenBriefs.jsx) do NOT call useI18n()/t() — they still use hardcoded literals. As a result switching bm_lang=en does NOT switch the page titles/labels.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "i18n EN switch on /provider/billing, /provider/verification, /buyer/projects",
+        "issue": "Setting localStorage.bm_lang='en' does NOT change page titles/labels. Strings like 'Subscription & Billing', 'Company verification', 'My projects', 'Mark project completed' exist in /app/frontend/src/lib/i18n.jsx under EN keys but the page files use HARDCODED Azerbaijani literals (e.g. Billing.jsx L86: title=\"Abunəlik və Ödəniş\", Verification.jsx, Projects.jsx L69 title=\"Layihələrim\", L37 toast=\"Layihə tamamlandı\", L102/121 \"Layihəni tamamla\"). useI18n() / t('billing.title') is never imported or called. AZ default still works because the AZ literals are hardcoded. Only string matched in EN test was 'Open Brief Marketplace' on /provider/open-briefs — and that is because OpenBriefs.jsx (L43) has a HARDCODED ENGLISH literal as the default (it is NOT i18n either, and inconsistent with the AZ defaults of the other pages).",
+        "affected_selectors": ["PageHeader title on provider/Billing.jsx, provider/Verification.jsx, provider/OpenBriefs.jsx, buyer/Projects.jsx"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration7_phase2_split.py",
+    "/app/test_reports/pytest/iteration_7_phase2.xml",
+    "/app/test_reports/pytest/iteration_7_regression.xml"
+  ],
+  "phase2_backend_verification": {
+    "admin_generic_resource_list_16_resources_admin_200": "PASS (services/portfolio/proposals/verification-requests/subscriptions/payments/invoices/reports/complaints/email-templates/content-pages/seo-pages/faqs/media-assets/admin-roles/ad-placements)",
+    "admin_generic_resource_list_16_resources_buyer_403": "PASS",
+    "admin_specific_routes_win_over_generic": "PASS (/api/admin/plans, /companies, /users, /leads, /briefs all return paginated items dict; /admin/stats returns non-items dict — none fell through to {resource} handler)",
+    "admin_faqs_post_then_put": "PASS (create+update both 200, fields persisted)",
+    "audit_logs_endpoint": "PASS (GET /api/admin/audit-logs returns paginated; FAQ create produces audit_logs entry with matching entity_id)",
+    "media_upload_get_delete": "PASS (POST /api/media multipart with module=avatar returns id/public_url=/api/media/{id}/storage_path; GET serves bytes back as PNG; DELETE as owner returns ok; subsequent GET returns 404)",
+    "media_anonymous_get_unknown_404": "PASS",
+    "ALLOW_DEMO_LOGIN_true_returns_200": "PASS",
+    "ALLOW_DEMO_LOGIN_false_returns_404": "PASS (toggled .env, restarted backend, verified 404, restored .env to true, restarted, re-verified 200)",
+    "env_state_after_tests": "ALLOW_DEMO_LOGIN=true (restored)"
+  },
+  "regression_pytest": {
+    "test_production_phase1.py": "26 passed, 2 skipped (TestProtectedReviews::test_full_chain, TestMigrations::test_briefs_visibility_field — same env-driven skips as iter5/iter6)",
+    "test_iteration5_fixes.py": "13 passed",
+    "test_iteration7_phase2_split.py": "45 passed",
+    "combined": "84 passed / 2 skipped / 0 failed",
+    "junit_xml": "/app/test_reports/pytest/iteration_7_regression.xml, /app/test_reports/pytest/iteration_7_phase2.xml"
+  },
+  "frontend_dashboard_layout_verification": {
+    "demo_logins_route_correctly": "PASS (admin->/admin/dashboard, buyer->/buyer/dashboard, provider->/provider/dashboard)",
+    "data-testid=dashboard-sidebar": "present, visible",
+    "data-testid=sidebar-collapse-toggle": "present, visible, click changes sidebar className",
+    "data-testid=sidebar-logout": "present, visible, logs out correctly",
+    "data-testid=topbar-menu-toggle": "present (only visible at <lg breakpoint), click toggles sidebar translate-x state",
+    "role_badge_buyer_dashboard": "shows 'Buyer' text in sidebar header",
+    "mobile_menu_390x844": "open/close transitions sidebar className (translate-x change verified)",
+    "az_revert_works": "PASS (after switching bm_lang back to 'az', /buyer/projects shows 'Layihələrim'/'Layihə' as expected)"
+  },
+  "frontend_console_errors": {
+    "401s_during_navigation": "14 transient 401 errors observed across the run — all 'Failed to load resource' from /api/me/* during logout->login transitions when the auth cookie is briefly absent. Pre-existing behavior, NOT caused by this iteration. No JS exceptions, no React hook warnings, no missing-key warnings.",
+    "non_401_errors": 0
+  },
+  "action_items": [
+    "Wire /app/frontend/src/pages/provider/Billing.jsx to call useI18n() and replace L86 PageHeader title=\"Abunəlik və Ödəniş\" with t(\"billing.title\"), description with t(\"billing.subtitle\", { plan: planName }) (or similar interpolation).",
+    "Same for /app/frontend/src/pages/provider/Verification.jsx — replace hardcoded heading literals with t(\"verification.title\") etc.",
+    "Same for /app/frontend/src/pages/buyer/Projects.jsx — replace L69 \"Layihələrim\" with t(\"projects.title\"), L37 toast.success(\"Layihə tamamlandı\") with t(\"projects.completed_toast\"), L102/121 \"Layihəni tamamla\" with t(\"projects.complete\").",
+    "Same for /app/frontend/src/pages/provider/OpenBriefs.jsx — L43 currently has hardcoded ENGLISH default 'Open Brief Marketplace' (inconsistent with the other pages defaulting to AZ). Replace with t(\"openbriefs.title\") so AZ users see AZ and EN users see EN.",
+    "After wiring, re-verify EN switch by setting localStorage.bm_lang='en' and reloading the four pages — all 5 strings (Subscription & Billing, Company verification, Open Brief Marketplace, My projects, Mark project completed) should appear."
+  ],
+  "critical_code_review_comments": [
+    "Phase-2 backend split is clean: routes/admin_resources.py + routes/media.py use a setup(deps) DI pattern; mounting order in server.py is correct (api_router -> business_routes inserted at front -> media include_router -> admin_resources include_router LAST so /admin/{resource} matches last). Verified empirically: /api/admin/plans / /companies / /users / /leads / /briefs / /stats all match their specific handlers, NOT the generic resource handler.",
+    "DashboardLayout decomposition into Sidebar/SidebarNav/SidebarHeader/SidebarUserBadge/SidebarFooter/DashboardTopbar preserves all data-testids (dashboard-sidebar, sidebar-collapse-toggle, sidebar-logout, topbar-menu-toggle, sidenav-*). Visual parity confirmed at desktop and mobile breakpoints.",
+    "ALLOW_DEMO_LOGIN env flag is correctly implemented in server.py L600 with safe default of 'false' — production deployments without the env var will automatically have the demo-login backdoor disabled. Good defense-in-depth.",
+    "I18N regression risk: adding EN keys to the dictionary without wiring t() calls in the consumer components is a no-op for the user. This is a frequent oversight — recommend a follow-up audit to find all hardcoded literals in pages/components that should be migrated to t().",
+    "File-size hygiene still pending: server.py is 3033 lines (down from 3187 — good progress from the Phase-2 split). business_routes.py still >700 lines.",
+    "Inconsistency: OpenBriefs.jsx uses an English literal as its default heading while sibling provider pages default to Azerbaijani — this should be normalized after i18n wiring."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration7_phase2_split.py (NEW — 45 tests covering admin generic CRUD, admin specific routes, audit logs, media upload/serve/delete, ALLOW_DEMO_LOGIN toggle)"
+  ],
+  "success_rate": {
+    "backend": "100% (84/84 non-skipped, 2 known env skips)",
+    "frontend": "Layout 100% / Demo-login 100% / i18n EN 20% (1 of 5 EN strings rendered, and that one only because of a hardcoded EN literal — actual t() wiring is 0/5)"
+  },
+  "test_credentials": "Used demo-login (buyer/provider/admin) via /app/memory/test_credentials.md. ALLOW_DEMO_LOGIN was toggled to false during one test and restored to true at the end; verified post-restore by checking .env and a live demo-login POST returning 200.",
+  "seed_data_creation": "Created and cleaned up TEST_iter7 FAQ records and one TEST_iter7_avatar media asset during the run; all deleted via DELETE endpoints at end of each test.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend Phase-2 split is rock-solid: 45/45 new tests + 39/39 regression. The route-ordering bug risk (specific admin routes falling through to generic /{resource}) is verified NOT present. The single open issue from this iteration is the i18n wiring gap: EN strings exist in i18n.jsx but pages do not call t(). Once main agent wires t() into Billing/Verification/Projects/OpenBriefs, re-run only the EN i18n step from the Playwright script in iteration_7 (load page with bm_lang='en' and grep content for the expected English string).",
+  "rca_of_the_issue": "ROOT CAUSE — i18n EN strings not rendering: the four target pages (provider/Billing.jsx L86, provider/Verification.jsx, provider/OpenBriefs.jsx L43, buyer/Projects.jsx L69/L37/L102/L121) use hardcoded string literals in their JSX instead of calling t(key) from useI18n(). Adding entries under the 'en' map in /app/frontend/src/lib/i18n.jsx has no effect on these components because they never read from the translation dictionary. REPRODUCTION: page.evaluate(()=>localStorage.setItem('bm_lang','en')); page.goto('/provider/billing'); page.content() — observe 'Abunəlik və Ödəniş' (AZ literal) instead of expected 'Subscription & Billing'. MITIGATION: import { useI18n } from '@/lib/i18n'; const { t } = useI18n(); replace JSX literal with {t('billing.title')} and add namespace+key in BOTH az and en dictionaries (en already populated for many keys; AZ entries must be added to preserve current AZ rendering)."
+}

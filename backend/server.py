@@ -594,9 +594,10 @@ async def login(payload: LoginIn, response: Response):
 
 @api_router.post("/auth/demo-login")
 async def demo_login(payload: DemoLoginIn, response: Response):
-    # Lets anyone become buyer/provider/admin with no password — fine for a sandboxed
-    # demo, a backdoor in production. Must be explicitly disabled there.
-    if os.environ.get("ALLOW_DEMO_LOGIN", "true").lower() != "true":
+    # Lets anyone become buyer/provider/admin with no password — fine for a
+    # sandboxed demo, a backdoor in production. Disabled by default; enable
+    # explicitly with ALLOW_DEMO_LOGIN=true in non-production environments.
+    if os.environ.get("ALLOW_DEMO_LOGIN", "false").lower() != "true":
         raise HTTPException(404, "Not found")
     mapping = {
         "buyer": os.environ.get("DEMO_BUYER_EMAIL", "buyer@bizmarket.az"),
@@ -2806,119 +2807,9 @@ async def update_integration(key: str, body: dict, user: dict = Depends(require_
     return {"ok": True}
 
 
-@api_router.get("/admin/audit-logs")
-async def audit_logs(
-    entity_type: Optional[str] = None,
-    entity_id: Optional[str] = None,
-    q: Optional[str] = None,
-    page: int = 1,
-    limit: int = 25,
-    sort: Optional[str] = None,
-    user: dict = Depends(require_role("admin")),
-):
-    _require_admin_module(user, "audit")
-    filters = {}
-    if entity_type:
-        filters["entity_type"] = entity_type
-    if entity_id:
-        filters["entity_id"] = entity_id
-    return await admin_list_response(
-        "audit_logs",
-        page=page,
-        limit=limit,
-        q=q,
-        sort=sort,
-        filters=filters,
-        search_fields=["action", "entity_type", "entity_id", "actor_email", "target"],
-        include_deleted=True,
-    )
-
-
-def _admin_resource_config(resource: str) -> dict:
-    config = ADMIN_RESOURCES.get(resource)
-    if not config:
-        raise HTTPException(404, "Admin resource not found")
-    return config
-
-
-@api_router.get("/admin/{resource}")
-async def admin_generic_list(
-    resource: str,
-    status: Optional[str] = None,
-    q: Optional[str] = None,
-    page: int = 1,
-    limit: int = 25,
-    sort: Optional[str] = None,
-    user: dict = Depends(require_role("admin")),
-):
-    config = _admin_resource_config(resource)
-    _require_admin_module(user, config["module"])
-    default_sort = "order" if resource in ("faqs", "admin-roles") else "created_at"
-    return await admin_list_response(
-        config["collection"],
-        page=page,
-        limit=limit,
-        q=q,
-        status=status,
-        sort=sort,
-        search_fields=config.get("search"),
-        default_sort=default_sort,
-    )
-
-
-@api_router.post("/admin/{resource}")
-async def admin_generic_create(resource: str, body: dict, user: dict = Depends(require_role("admin"))):
-    config = _admin_resource_config(resource)
-    _require_admin_module(user, config["module"])
-    doc = {
-        "id": body.get("id") or new_id(),
-        "created_at": now_iso(),
-        "updated_at": now_iso(),
-        **body,
-    }
-    doc.setdefault("status", "draft" if resource in ("content-pages", "seo-pages", "email-templates") else "active")
-    if resource == "ad-placements":
-        doc.setdefault("active", True)
-        doc.setdefault("period", "ay")
-    await db[config["collection"]].insert_one(doc)
-    await write_audit(user, f"{resource}.create", resource.rstrip("s"), doc["id"], {}, doc)
-    doc.pop("_id", None)
-    return doc
-
-
-@api_router.put("/admin/{resource}/{rid}")
-async def admin_generic_update(resource: str, rid: str, body: dict, user: dict = Depends(require_role("admin"))):
-    config = _admin_resource_config(resource)
-    _require_admin_module(user, config["module"])
-    old = await db[config["collection"]].find_one({"id": rid}, {"_id": 0})
-    if not old:
-        if resource not in ("content-pages", "seo-pages", "faqs", "email-templates", "admin-roles"):
-            raise HTTPException(404, "Item not found")
-        created = {"id": rid, "created_at": now_iso(), "updated_at": now_iso(), **body}
-        created.setdefault("slug", rid)
-        created.setdefault("status", "draft")
-        await db[config["collection"]].insert_one(created)
-        await write_audit(user, f"{resource}.create", resource.rstrip("s"), rid, {}, created)
-        created.pop("_id", None)
-        return created
-    update = {**body, "updated_at": now_iso()}
-    await db[config["collection"]].update_one({"id": rid}, {"$set": update})
-    await write_audit(user, f"{resource}.update", resource.rstrip("s"), rid, old, update)
-    updated = await db[config["collection"]].find_one({"id": rid}, {"_id": 0})
-    return updated
-
-
-@api_router.delete("/admin/{resource}/{rid}")
-async def admin_generic_delete(resource: str, rid: str, user: dict = Depends(require_role("admin"))):
-    config = _admin_resource_config(resource)
-    _require_admin_module(user, config["module"])
-    old = await db[config["collection"]].find_one({"id": rid}, {"_id": 0})
-    if not old:
-        raise HTTPException(404, "Item not found")
-    update = {"deleted_at": now_iso(), "deleted_by": user["id"], "status": "deleted"}
-    await db[config["collection"]].update_one({"id": rid}, {"$set": update})
-    await write_audit(user, f"{resource}.delete", resource.rstrip("s"), rid, old, update)
-    return {"ok": True}
+# Generic admin resource CRUD + audit-logs + media endpoints live in
+# /app/backend/routes/admin_resources.py and routes/media.py
+# (mounted at the bottom of this file).
 
 
 async def _published_content_by_slug(slug: str):
@@ -2996,87 +2887,8 @@ async def public_seo_page(slug: str):
     return page
 
 
-@api_router.post("/media")
-async def upload_media(
-    module: str = Form(...),
-    entity_id: str = Form(""),
-    alt: str = Form(""),
-    file: UploadFile = File(...),
-    user: dict = Depends(get_current_user),
-):
-    if module == "message-attachment":
-        thread = await db.message_threads.find_one({"id": entity_id}, {"_id": 0})
-        if not thread or user["id"] not in thread.get("participants", []):
-            raise HTTPException(403, "Forbidden")
-    elif module == "avatar":
-        pass  # any authenticated user may upload their own profile picture
-    elif user.get("role") not in ("admin", "provider"):
-        raise HTTPException(403, "Forbidden")
-    elif user.get("role") == "admin":
-        _require_admin_module(user, "media")
-
-    name = Path(file.filename or "upload").name
-    ext = _media_ext(name)
-    if ext not in _allowed_media_exts_for_module(module):
-        raise HTTPException(400, "Bu modul üçün media formatı dəstəklənmir.")
-    content = await file.read()
-    size = len(content)
-    if size > MAX_MEDIA_FILE_SIZE:
-        raise HTTPException(400, "Media faylı maksimum 15 MB ola bilər.")
-
-    asset_id = new_id()
-    target_dir = MEDIA_UPLOAD_DIR / module
-    target_dir.mkdir(parents=True, exist_ok=True)
-    stored_name = f"{asset_id}{ext}"
-    path = target_dir / stored_name
-    path.write_bytes(content)
-    doc = {
-        "id": asset_id,
-        "owner_id": user["id"],
-        "owner_role": user.get("role"),
-        "module": module,
-        "entity_id": entity_id,
-        "name": name,
-        "stored_name": stored_name,
-        "storage_path": str(path),
-        "public_url": f"/api/media/{asset_id}",
-        "mime": file.content_type or "application/octet-stream",
-        "size": size,
-        "alt": alt,
-        "status": "active",
-        "created_at": now_iso(),
-        "updated_at": now_iso(),
-    }
-    await db.media_assets.insert_one(doc)
-    if user.get("role") == "admin":
-        await write_audit(user, "media.create", "media_asset", asset_id, {}, doc)
-    doc.pop("_id", None)
-    return doc
-
-
-@api_router.get("/media/{asset_id}")
-async def serve_media(asset_id: str):
-    doc = await db.media_assets.find_one({"id": asset_id, "status": "active", "deleted_at": {"$exists": False}}, {"_id": 0})
-    if not doc:
-        raise HTTPException(404, "Media not found")
-    path = Path(doc.get("storage_path", ""))
-    if not path.exists():
-        raise HTTPException(404, "Media not found")
-    return FileResponse(path, media_type=doc.get("mime") or "application/octet-stream", filename=doc.get("name") or path.name)
-
-
-@api_router.delete("/media/{asset_id}")
-async def delete_media(asset_id: str, user: dict = Depends(get_current_user)):
-    doc = await db.media_assets.find_one({"id": asset_id, "deleted_at": {"$exists": False}}, {"_id": 0})
-    if not doc:
-        raise HTTPException(404, "Media not found")
-    if user.get("role") != "admin" and doc.get("owner_id") != user.get("id"):
-        raise HTTPException(403, "Forbidden")
-    update = {"status": "deleted", "deleted_at": now_iso(), "deleted_by": user["id"], "updated_at": now_iso()}
-    await db.media_assets.update_one({"id": asset_id}, {"$set": update})
-    if user.get("role") == "admin":
-        await write_audit(user, "media.delete", "media_asset", asset_id, doc, update)
-    return {"ok": True}
+# Media endpoints (POST/GET/DELETE /api/media) live in
+# /app/backend/routes/media.py (mounted at the bottom of this file).
 
 
 # ------- Provider analytics & buyer dashboard -------
@@ -3145,6 +2957,41 @@ try:
         app.router.routes.insert(0, _route)
 except Exception as _err:
     logging.getLogger(__name__).exception(f"business_routes wiring failed: {_err}")
+
+# Phase 2 modular split — domain routers extracted from this file.
+try:
+    from routes.admin_resources import setup as _setup_admin_resources
+    from routes.media import setup as _setup_media
+
+    _media_router = _setup_media(
+        db=db,
+        get_current_user=get_current_user,
+        require_admin_module=_require_admin_module,
+        write_audit=write_audit,
+        new_id=new_id,
+        now_iso=now_iso,
+        media_ext=_media_ext,
+        allowed_exts_for_module=_allowed_media_exts_for_module,
+        MEDIA_UPLOAD_DIR=MEDIA_UPLOAD_DIR,
+        MAX_MEDIA_FILE_SIZE=MAX_MEDIA_FILE_SIZE,
+    )
+    app.include_router(_media_router)
+
+    # Admin generic resource router must be mounted LAST so that more specific
+    # admin routes (declared in business_routes / api_router) win the match.
+    _admin_resources_router = _setup_admin_resources(
+        db=db,
+        require_role=require_role,
+        require_admin_module=_require_admin_module,
+        admin_list_response=admin_list_response,
+        write_audit=write_audit,
+        new_id=new_id,
+        now_iso=now_iso,
+        ADMIN_RESOURCES=ADMIN_RESOURCES,
+    )
+    app.include_router(_admin_resources_router)
+except Exception as _err:
+    logging.getLogger(__name__).exception(f"phase-2 routes wiring failed: {_err}")
 
 app.add_middleware(
     CORSMiddleware,
